@@ -108,6 +108,12 @@
     .landing-container{width:100%;max-width:1024px;margin:0 auto;padding:0 1.5rem}
     .scroll-indicator{position:absolute;bottom:1.5rem;left:50%;transform:translateX(-50%);color:var(--mt);animation:bnc 2s infinite}
     @keyframes bnc{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(10px)}}
+    
+    /* Tutorial Overlay */
+    #tutOverlay{position:fixed;inset:0;z-index:9000;pointer-events:none;display:none}
+    #tutBox{position:absolute;bottom:30px;left:50%;transform:translateX(-50%);background:var(--sf);border:1px solid var(--ac);border-radius:12px;padding:20px;width:320px;max-width:90vw;box-shadow:0 10px 40px rgba(0,0,0,.8);pointer-events:auto}
+    .tut-step{font-size:13px;color:var(--fg);line-height:1.5;text-align:center;margin-bottom:15px}
+    .tut-btn{background:var(--ac);color:#000;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;width:100%}
   </style>
 </head>
 <body>
@@ -130,7 +136,10 @@
       <p class="text-base md:text-xl text-gray-400 max-w-2xl mb-10 leading-relaxed">
         V2H is a no-bullshit visual editor for developers. Design your layout, drop your elements, and export a standalone HTML file or Zip. Push to GitHub, connect Vercel, and deploy in seconds.
       </p>
-      <button onclick="newProject()" class="bg-white text-black font-bold py-4 px-12 rounded-lg hover:bg-gray-200 transition-transform active:scale-95 text-base tracking-wide">Create New Project <i class="fas fa-plus ml-2"></i></button>
+      <div class="flex flex-col sm:flex-row gap-3 mb-4">
+        <button onclick="newProject()" class="bg-white text-black font-bold py-4 px-12 rounded-lg hover:bg-gray-200 transition-transform active:scale-95 text-base tracking-wide">Create New Project <i class="fas fa-plus ml-2"></i></button>
+        <button onclick="startTutorial()" class="bg text-black font-bold py-4 px-12 rounded-lg hover:bg-gray-700 transition-transform active:scale-95 text-base tracking-wide border border-gray-700 text-white"><i class="fas fa-graduation-cap mr-2"></i> Start Tutorial</button>
+      </div>
       <div class="scroll-indicator"><i class="fas fa-chevron-down text-xl"></i></div>
     </div>
 
@@ -159,8 +168,8 @@
         </div>
         <div class="p-6 border border-[#262626] rounded-xl bg-[#0a0a0a]">
           <i class="fas fa-clipboard text-white mb-4 text-xl"></i>
-          <h3 class="font-['Space_Grotesk'] font-semibold text-base text-white mb-2">Clipboard Paste</h3>
-          <p class="text-xs text-gray-500 leading-relaxed">Copy any image from the web or your device, and just paste it directly onto the canvas.</p>
+          <h3 class="font-['Space_Grotesk'] font-semibold text-base text-white mb-2">Multi-Page & Links</h3>
+          <p class="text-xs text-gray-500 leading-relaxed">Build full websites with multiple pages, anchor links, and smooth scrolling. All in one ZIP.</p>
         </div>
       </div>
     </div>
@@ -178,6 +187,7 @@
       </div>
       
       <div class="flex items-center gap-1">
+        <button onclick="togglePop('pagesPop', this)" id="pagesBtn" class="ab" title="Pages"><i class="fas fa-file"></i></button>
         <button onclick="togglePop('layersPop', this)" id="layersBtn" class="ab" title="Layers"><i class="fas fa-layer-group"></i></button>
         <button onclick="togglePop('animPop', this)" id="animBtn" class="ab" title="Animations"><i class="fas fa-bolt"></i></button>
         <div class="w-px h-4 bg-[#262626] mx-1"></div>
@@ -206,6 +216,14 @@
             <div id="openList" class="flex flex-col gap-1 max-h-60 overflow-y-auto"></div>
           </div>
         </div>
+      </div>
+
+      <div id="pagesPop" class="popover left-3" style="top:48px; width: 220px;">
+        <div class="flex justify-between items-center mb-2 pb-1 border-b border-[#262626]">
+          <div class="text-[9px] text-[#808080] uppercase tracking-wider font-bold">Pages</div>
+          <button onclick="addPage()" class="text-[10px] text-white flex items-center gap-1"><i class="fas fa-plus"></i> Add</button>
+        </div>
+        <div id="pageList" class="flex flex-col gap-1 max-h-60 overflow-y-auto"></div>
       </div>
 
       <div id="layersPop" class="popover left-3" style="top:48px">
@@ -257,6 +275,7 @@
           <input type="number" id="ctxStrokeW" class="ctx-input" style="width:30px" min="0" max="20" onchange="uProp(S.sel,'strokeWidth',+this.value)" title="Stroke Width">
           <button id="ctxEditBtn" class="ab h-7 w-7" style="display:none" onclick="editTextOnCanvas()" title="Edit Text"><i class="fas fa-pen"></i></button>
           <div class="ctx-divider"></div>
+          <button id="ctxLinkBtn" class="ab h-7 w-7" onclick="openLinkMenu()" title="Add Link/Anchor"><i class="fas fa-link"></i></button>
           <button onclick="doDupe()" class="ab h-7 w-7"><i class="fas fa-copy"></i></button>
           <button onclick="doDel(S.sel)" class="ab h-7 w-7" style="color:var(--dn);border-color:rgba(255,71,87,.3)"><i class="fas fa-trash"></i></button>
         </div>
@@ -274,8 +293,30 @@
 
   <div id="colorM" class="mb" style="display:none"><div class="mx" style="width:260px"><h3 id="colorTitle" class="text-sm font-semibold mb-3 font-['Space_Grotesk'] text-white">Pick Color</h3><input type="color" id="colorWheel" style="width:100%;height:120px;border:1px solid var(--bd);border-radius:8px;background:none;cursor:pointer;margin-bottom:10px;"><div class="flex gap-2 items-center mb-3"><span class="text-xs text-gray-400">#</span><input type="text" id="colorHex" class="pi flex-1" placeholder="FFFFFF" oninput="updateColorFromHex(this.value)"></div><div class="flex gap-2 justify-end"><button class="bg text-[10px]" onclick="closeColorPicker()">Done</button></div></div></div>
 
-  <div id="exM" class="mb" style="display:none"><div class="mx" style="max-width:600px;width:90vw"><h3 class="text-sm font-semibold mb-1 font-['Space_Grotesk'] text-white">Export HTML</h3><p class="text-[10px] text-[#808080] mb-2">If you used local uploads, a ZIP will be downloaded containing index.html and your images side-by-side. Otherwise, a single HTML file is downloaded.</p><div class="flex gap-2 justify-end mt-3"><button class="bg text-[10px]" onclick="exClose()">Close</button><button class="bg text-[10px]" onclick="exCopy()"><i class="fas fa-copy mr-1"></i>Copy Code</button><button class="ba text-[10px]" onclick="exDown()"><i class="fas fa-download mr-1"></i>Download</button></div></div></div>
+  <!-- Link Menu Modal -->
+  <div id="linkM" class="mb" style="display:none"><div class="mx" style="width:300px">
+    <h3 class="text-sm font-semibold mb-3 font-['Space_Grotesk'] text-white">Link & Anchors</h3>
+    <div class="mb-3">
+      <div class="pl mb-1">Link Destination (Page or URL)</div>
+      <input type="text" id="linkHref" class="pi" placeholder="e.g., about.html or https://google.com" oninput="setLinkHref(this.value)">
+    </div>
+    <div class="mb-3">
+      <div class="pl mb-1">OR Smooth Scroll Anchor ID</div>
+      <input type="text" id="linkAnchor" class="pi" placeholder="e.g., features (clicking scrolls here)" oninput="setLinkAnchor(this.value)">
+    </div>
+    <div class="flex justify-end mt-4"><button class="ba text-[10px]" onclick="closeLinkMenu()">Done</button></div>
+  </div></div>
+
+  <div id="exM" class="mb" style="display:none"><div class="mx" style="max-width:600px;width:90vw"><h3 class="text-sm font-semibold mb-1 font-['Space_Grotesk'] text-white">Export HTML</h3><p class="text-[10px] text-[#808080] mb-2">If you used local uploads or multiple pages, a ZIP will be downloaded. Otherwise, a single HTML file.</p><div class="flex gap-2 justify-end mt-3"><button class="bg text-[10px]" onclick="exClose()">Close</button><button class="bg text-[10px]" onclick="exCopy()"><i class="fas fa-copy mr-1"></i>Copy Code</button><button class="ba text-[10px]" onclick="exDown()"><i class="fas fa-download mr-1"></i>Download</button></div></div></div>
   <div id="tst" class="fixed bottom-3 right-3 flex flex-col gap-1.5 z-[9999]"></div>
+
+  <!-- Tutorial Overlay -->
+  <div id="tutOverlay">
+    <div id="tutBox">
+      <div class="tut-step" id="tutText"></div>
+      <button class="tut-btn" onclick="nextTutorialStep()">Next</button>
+    </div>
+  </div>
 
   <script>
     document.addEventListener('contextmenu',e=>e.preventDefault());
@@ -285,10 +326,46 @@
     const AN={none:{l:'None',c:''},fadeIn:{l:'Fade In',c:'@keyframes fadeIn{from{opacity:0}to{opacity:1}}'},fadeOut:{l:'Fade Out',c:'@keyframes fadeOut{from{opacity:1}to{opacity:0}}'},slideLeft:{l:'Slide Left',c:'@keyframes slideLeft{from{transform:translateX(-120px);opacity:0}to{transform:translateX(0);opacity:1}}'},slideRight:{l:'Slide Right',c:'@keyframes slideRight{from{transform:translateX(120px);opacity:0}to{transform:translateX(0);opacity:1}}'},slideUp:{l:'Slide Up',c:'@keyframes slideUp{from{transform:translateY(80px);opacity:0}to{transform:translateY(0);opacity:1}}'},slideDown:{l:'Slide Down',c:'@keyframes slideDown{from{transform:translateY(-80px);opacity:0}to{transform:translateY(0);opacity:1}}'},bounceIn:{l:'Bounce In',c:'@keyframes bounceIn{0%{transform:scale(0);opacity:0}50%{transform:scale(1.15)}70%{transform:scale(.95)}100%{transform:scale(1);opacity:1}}'},rotateIn:{l:'Rotate In',c:'@keyframes rotateIn{from{transform:rotate(-200deg) scale(0);opacity:0}to{transform:rotate(0) scale(1);opacity:1}}'},pulse:{l:'Pulse',c:'@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}'},shake:{l:'Shake',c:'@keyframes shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-8px)}30%{transform:translateX(8px)}45%{transform:translateX(-6px)}60%{transform:translateX(6px)}75%{transform:translateX(-3px)}90%{transform:translateX(3px)}}'},float:{l:'Float',c:'@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}'},scaleUp:{l:'Scale Up',c:'@keyframes scaleUp{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}'},swing:{l:'Swing',c:'@keyframes swing{20%{transform:rotate(15deg)}40%{transform:rotate(-10deg)}60%{transform:rotate(5deg)}80%{transform:rotate(-5deg)}100%{transform:rotate(0)}}'},flash:{l:'Flash',c:'@keyframes flash{0%,50%,100%{opacity:1}25%,75%{opacity:0}}'},rubberBand:{l:'Rubber Band',c:'@keyframes rubberBand{0%{transform:scaleX(1)}30%{transform:scaleX(1.25) scaleY(.75)}40%{transform:scaleX(.75) scaleY(1.25)}50%{transform:scaleX(1.15) scaleY(.85)}65%{transform:scaleX(.95) scaleY(1.05)}75%{transform:scaleX(1.05) scaleY(.95)}100%{transform:scaleX(1) scaleY(1)}}'},zoomOut:{l:'Zoom Out',c:'@keyframes zoomOut{from{transform:scale(1.5);opacity:0}to{transform:scale(1);opacity:1}}'}};
     {let c='';Object.values(AN).forEach(a=>{if(a.c)c+=a.c+'\n'});const s=document.createElement('style');s.textContent=c;document.head.appendChild(s)}
 
-    let S={els:[],sel:null,mode:'select',fc:'#ffffff',sc:'#000000',sw:2,fs:32,bg:'#ffffff',nid:1,undo:[],redo:[],grid:true,snap:true,exCode:'',gesture:'IDLE',projectId:null,projectName:'Untitled'};
+    let S={els:[],pages:[{id:'index',name:'Home'}],activePageId:'index',sel:null,mode:'select',fc:'#ffffff',sc:'#000000',sw:2,fs:32,bg:'#ffffff',nid:1,undo:[],redo:[],grid:true,snap:true,exCode:'',gesture:'IDLE',projectId:null,projectName:'Untitled',isTutorial:false};
     const IX={pid:-1,dx:0,dy:0,pts:new Map(),pinchD:0,pinchW:0,pinchH:0,pinchCX:0,pinchCY:0,pinchIP:null,pinchIL:null,rh:'',rs:{},ep:'',fhPts:[],sbShape:null,txPos:null};
 
     const ws=document.getElementById('ws'),svgO=document.getElementById('svgO'),so=document.getElementById('so'),lL=document.getElementById('lL'),aP=document.getElementById('aP'),fSw=document.getElementById('fSw'),sSw=document.getElementById('sSw'),ghost=document.getElementById('dragGhost'),tm=document.getElementById('txtMeasure'),ctxBar=document.getElementById('ctxBar');
+
+    // --- TUTORIAL LOGIC ---
+    const tutSteps = [
+      "Welcome to V2H! This is your canvas. Let's learn the basics.",
+      "Drag shapes (like Rectangles or Text) from the left toolbar onto the canvas.",
+      "Tap any element on the canvas to select it. You'll see a dashed outline and handles.",
+      "Use the floating top bar to change X, Y, Width, Height, and Colors.",
+      "Click the Bolt icon in the header to add cool animations to your elements.",
+      "Click the File icon in the header to manage multiple pages for your website.",
+      "Select an element and click the Chain icon to link it to another page or URL.",
+      "You're ready! Click Export to download your pure HTML code."
+    ];
+    let tutStepIdx = 0;
+    function startTutorial() {
+      newProject();
+      S.isTutorial = true;
+      tutStepIdx = 0;
+      document.getElementById('tutOverlay').style.display = 'block';
+      updateTutorialBox();
+      // Add dummy elements for context
+      mkEl('text', {x: 200, y: 150, text: 'Tutorial', fill: '#000', fontSize: 48});
+      mkEl('rect', {x: 220, y: 250, width: 200, height: 100, fill: '#f0f0f0', stroke: '#000', strokeWidth: 2});
+    }
+    function updateTutorialBox() {
+      document.getElementById('tutText').textContent = tutSteps[tutStepIdx];
+    }
+    function nextTutorialStep() {
+      tutStepIdx++;
+      if (tutStepIdx >= tutSteps.length) {
+        document.getElementById('tutOverlay').style.display = 'none';
+        S.isTutorial = false;
+        toast('Tutorial complete!', 'ok');
+      } else {
+        updateTutorialBox();
+      }
+    }
 
     // --- CUSTOM POPUPS ---
     let promptCallback = null;
@@ -302,6 +379,69 @@
     function updateColorFromHex(val){if(val.length===6||val.length===3){const fullVal='#'+val;document.getElementById('colorWheel').value=fullVal;applyColor(fullVal)}}
     function applyColor(val){if(colorTarget==='fill'){if(S.sel){uProp(S.sel,'fill',val);document.getElementById('ctxFillSw').style.background=val}else{S.fc=val;fSw.style.background=val}}else if(colorTarget==='stroke'){if(S.sel){uProp(S.sel,'stroke',val);document.getElementById('ctxStrokeSw').style.background=val}else{S.sc=val;sSw.style.background=val}}else if(colorTarget==='bg')chgBg(val)}
     function closeColorPicker(){document.getElementById('colorM').style.display='none'}
+
+    // --- LINK & ANCHOR LOGIC ---
+    function openLinkMenu(){
+      const el = gel(S.sel);
+      if(!el) return;
+      document.getElementById('linkHref').value = el.href || '';
+      document.getElementById('linkAnchor').value = el.anchorId || '';
+      document.getElementById('linkM').style.display = 'flex';
+    }
+    function closeLinkMenu(){document.getElementById('linkM').style.display='none'}
+    function setLinkHref(val){const el=gel(S.sel);if(el){el.href=val;uEl(el);toast('Link updated','ok')}}
+    function setLinkAnchor(val){const el=gel(S.sel);if(el){el.anchorId=val;uEl(el);toast('Anchor ID set','ok')}}
+
+    // --- PAGES LOGIC ---
+    function getActivePage(){return S.pages.find(p=>p.id===S.activePageId)}
+    function renderPagesList(){
+      const list = document.getElementById('pageList');
+      list.innerHTML = S.pages.map(p => `
+        <div class="li ${p.id===S.activePageId?'on':''}" onclick="switchPage('${p.id}')">
+          <span class="ic"><i class="fas fa-file"></i></span>
+          <span class="nm">${p.name}.html</span>
+          ${S.pages.length > 1 ? `<span class="dl" onclick="event.stopPropagation();deletePage('${p.id}')"><i class="fas fa-xmark"></i></span>` : ''}
+        </div>
+      `).join('');
+    }
+    function addPage(){
+      showPrompt('New Page Name', 'page', (name) => {
+        const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        if(S.pages.find(p=>p.id===id)){toast('Page already exists','er');return}
+        // save current els before switching
+        getActivePage().els = S.els;
+        S.pages.push({id, name, els:[]});
+        S.activePageId = id;
+        S.els = [];
+        ws.querySelectorAll('.we, g').forEach(e=>e.remove());
+        desel();
+        renderPagesList();
+        toast('Page added','ok');
+      });
+    }
+    function switchPage(id){
+      if(id === S.activePageId) return;
+      getActivePage().els = S.els;
+      S.activePageId = id;
+      S.els = getActivePage().els || [];
+      ws.querySelectorAll('.we, g').forEach(e=>e.remove());
+      S.els.forEach(rEl);
+      desel();
+      renderPagesList();
+    }
+    function deletePage(id){
+      if(S.pages.length <= 1) return;
+      S.pages = S.pages.filter(p=>p.id!==id);
+      if(S.activePageId === id) {
+        S.activePageId = S.pages[0].id;
+        S.els = S.pages[0].els || [];
+        ws.querySelectorAll('.we, g').forEach(e=>e.remove());
+        S.els.forEach(rEl);
+        desel();
+      }
+      renderPagesList();
+      toast('Page deleted','ok');
+    }
 
     // --- DASHBOARD & PROJECT LOGIC ---
     function getProjects(){return JSON.parse(localStorage.getItem('v2h_projects')||'[]')}
@@ -346,8 +486,14 @@
     function exitToDashboard(){if(S.projectId)_performSave();else if(S.els.length>0){showPrompt('Save current project?',S.projectName||'Untitled',newName=>{S.projectName=newName;S.projectId=Date.now();_performSave();_goToDashboard()});return}_goToDashboard()}
     function _goToDashboard(){document.getElementById('app').style.display='none';document.getElementById('landing').style.display='flex';renderDashboard()}
 
-    function newProject(){S={els:[],sel:null,mode:'select',fc:'#ffffff',sc:'#000000',sw:2,fs:32,bg:'#ffffff',nid:1,undo:[],redo:[],grid:true,snap:true,exCode:'',gesture:'IDLE',projectId:null,projectName:'Untitled'};ws.style.backgroundColor=S.bg;ws.querySelectorAll('.we, g').forEach(e=>e.remove());desel();document.getElementById('landing').style.display='none';document.getElementById('app').style.display='flex';if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(err=>{})}
-    function openProject(id){const p=getProjects().find(x=>x.id===id);if(!p)return;S={...p.state,sel:null,undo:[],redo:[],gesture:'IDLE'};S.projectId=p.id;S.projectName=p.name;ws.style.backgroundColor=S.bg;ws.querySelectorAll('.we, g').forEach(e=>e.remove());S.els.forEach(rEl);desel();document.getElementById('landing').style.display='none';document.getElementById('openPop').style.display='none';document.getElementById('app').style.display='flex'}
+    function newProject(){
+      S={els:[],pages:[{id:'index',name:'Home'}],activePageId:'index',sel:null,mode:'select',fc:'#ffffff',sc:'#000000',sw:2,fs:32,bg:'#ffffff',nid:1,undo:[],redo:[],grid:true,snap:true,exCode:'',gesture:'IDLE',projectId:null,projectName:'Untitled',isTutorial:false};
+      ws.style.backgroundColor=S.bg;ws.querySelectorAll('.we, g').forEach(e=>e.remove());desel();
+      document.getElementById('landing').style.display='none';document.getElementById('app').style.display='flex';
+      if(document.documentElement.requestFullscreen)document.documentElement.requestFullscreen().catch(err=>{});
+      renderPagesList();
+    }
+    function openProject(id){const p=getProjects().find(x=>x.id===id);if(!p)return;S={...p.state,sel:null,undo:[],redo:[],gesture:'IDLE'};if(!S.pages)S.pages=[{id:'index',name:'Home',els:S.els}];if(!S.activePageId)S.activePageId='index';S.projectId=p.id;S.projectName=p.name;ws.style.backgroundColor=S.bg;ws.querySelectorAll('.we, g').forEach(e=>e.remove());S.els=getActivePage().els||[];S.els.forEach(rEl);desel();document.getElementById('landing').style.display='none';document.getElementById('openPop').style.display='none';document.getElementById('app').style.display='flex';renderPagesList();}
     function deleteProject(id){if(!confirm('Delete this project?'))return;let p=getProjects().filter(x=>x.id!==id);setProjects(p);renderDashboard()}
 
     function generateThumb(callback){
@@ -355,19 +501,23 @@
       html2canvas(ws,{backgroundColor:S.bg,scale:0.3,logging:false,useCORS:true}).then(canvas=>{so.style.display='block';callback(canvas.toDataURL('image/jpeg',0.4))}).catch(err=>{so.style.display='block';callback('')});
     }
 
-    function saveProject(saveAs=false){if(saveAs||!S.projectId)showPrompt('Save Project As',S.projectName,newName=>{S.projectName=newName;S.projectId=Date.now();_performSave()});else _performSave()}
+    function saveProject(saveAs=false){
+      // Ensure current page elements are saved into the pages array before serializing
+      getActivePage().els = S.els;
+      if(saveAs||!S.projectId)showPrompt('Save Project As',S.projectName,newName=>{S.projectName=newName;S.projectId=Date.now();_performSave()});else _performSave()
+    }
     function _performSave(){generateThumb(thumb=>{const p=getProjects(),existing=p.find(x=>x.id===S.projectId),projData={id:S.projectId,name:S.projectName,date:Date.now(),thumb:thumb,state:JSON.parse(JSON.stringify(S))};if(existing){existing.name=S.projectName;existing.date=Date.now();existing.thumb=thumb;existing.state=projData.state}else p.push(projData);setProjects(p);toast('Project Saved','ok')})}
 
-    function importProject(){const input=document.createElement('input');input.type='file';input.accept='.json';input.onchange=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{const data=JSON.parse(ev.target.result);S={...data.state,sel:null,undo:[],redo:[],gesture:'IDLE'};S.projectId=Date.now();S.projectName=data.name+" (Imported)";ws.style.backgroundColor=S.bg;ws.querySelectorAll('.we, g').forEach(el=>el.remove());S.els.forEach(rEl);desel();document.getElementById('landing').style.display='none';document.getElementById('app').style.display='flex';toast('Imported','ok')}catch(e){toast('Invalid file','er')}};reader.readAsText(file)};input.click()}
+    function importProject(){const input=document.createElement('input');input.type='file';input.accept='.json';input.onchange=e=>{const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{const data=JSON.parse(ev.target.result);S={...data.state,sel:null,undo:[],redo:[],gesture:'IDLE'};if(!S.pages)S.pages=[{id:'index',name:'Home',els:S.els}];S.projectId=Date.now();S.projectName=data.name+" (Imported)";ws.style.backgroundColor=S.bg;ws.querySelectorAll('.we, g').forEach(el=>el.remove());S.els=getActivePage().els||[];S.els.forEach(rEl);desel();document.getElementById('landing').style.display='none';document.getElementById('app').style.display='flex';renderPagesList();toast('Imported','ok')}catch(e){toast('Invalid file','er')}};reader.readAsText(file)};input.click()}
 
-    function importZip(){const input=document.createElement('input');input.type='file';input.accept='.zip';input.onchange=e=>{const file=e.target.files[0];if(!file)return;JSZip.loadAsync(file).then(zip=>{const stateFile=Object.keys(zip.files).find(f=>f.endsWith('v2h_state.json'));if(stateFile){zip.file(stateFile).async('string').then(content=>{const data=JSON.parse(content);S={...data.state,sel:null,undo:[],redo:[],gesture:'IDLE'};S.projectId=Date.now();S.projectName=data.name+" (Imported ZIP)";ws.style.backgroundColor=S.bg;ws.querySelectorAll('.we, g').forEach(el=>el.remove());S.els.forEach(rEl);desel();document.getElementById('landing').style.display='none';document.getElementById('app').style.display='flex';toast('ZIP Imported','ok')})}else toast('Invalid V2H Zip','er')}).catch(err=>toast('Error reading ZIP','er'))};input.click()}
+    function importZip(){const input=document.createElement('input');input.type='file';input.accept='.zip';input.onchange=e=>{const file=e.target.files[0];if(!file)return;JSZip.loadAsync(file).then(zip=>{const stateFile=Object.keys(zip.files).find(f=>f.endsWith('v2h_state.json'));if(stateFile){zip.file(stateFile).async('string').then(content=>{const data=JSON.parse(content);S={...data.state,sel:null,undo:[],redo:[],gesture:'IDLE'};S.projectId=Date.now();S.projectName=data.name+" (Imported ZIP)";ws.style.backgroundColor=S.bg;ws.querySelectorAll('.we, g').forEach(el=>el.remove());S.els=getActivePage().els||[];S.els.forEach(rEl);desel();document.getElementById('landing').style.display='none';document.getElementById('app').style.display='flex';renderPagesList();toast('ZIP Imported','ok')})}else toast('Invalid V2H Zip','er')}).catch(err=>toast('Error reading ZIP','er'))};input.click()}
 
     function exportProject(){if(!S.projectId)showPrompt('Export Project As',S.projectName,newName=>{S.projectName=newName;S.projectId=Date.now();_performSave();_downloadProjectJson()});else{_performSave();_downloadProjectJson()}}
-    function _downloadProjectJson(){const data=JSON.stringify({name:S.projectName,state:S}),blob=new Blob([data],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=S.projectName.replace(/\s/g,'_')+'.json';a.click();toast('Project Exported','ok')}
+    function _downloadProjectJson(){getActivePage().els=S.els;const data=JSON.stringify({name:S.projectName,state:S}),blob=new Blob([data],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=S.projectName.replace(/\s/g,'_')+'.json';a.click();toast('Project Exported','ok')}
 
     // --- UI LOGIC ---
-    function togglePop(id,btn){document.getElementById('openPop').style.display='none';document.querySelectorAll('.popover').forEach(p=>{if(p.id!==id)p.classList.remove('active')});document.getElementById(id).classList.toggle('active');if(id==='animPop')uAP();if(id==='layersPop')uLay()}
-    document.addEventListener('pointerdown',e=>{if(!e.target.closest('.popover')&&!e.target.closest('#layersBtn')&&!e.target.closest('#animBtn')&&!e.target.closest('#menuPop'))document.querySelectorAll('.popover').forEach(p=>p.classList.remove('active'))});
+    function togglePop(id,btn){document.getElementById('openPop').style.display='none';document.querySelectorAll('.popover').forEach(p=>{if(p.id!==id)p.classList.remove('active')});document.getElementById(id).classList.toggle('active');if(id==='animPop')uAP();if(id==='layersPop')uLay();if(id==='pagesPop')renderPagesList()}
+    document.addEventListener('pointerdown',e=>{if(!e.target.closest('.popover')&&!e.target.closest('#layersBtn')&&!e.target.closest('#animBtn')&&!e.target.closest('#menuPop')&&!e.target.closest('#pagesBtn'))document.querySelectorAll('.popover').forEach(p=>p.classList.remove('active'))});
 
     function gid(){return S.nid++}function gel(id){return S.els.find(e=>e.id===id)}
     function gpos(cx,cy){const r=ws.getBoundingClientRect();return{x:cx-r.left,y:cy-r.top}}
@@ -399,13 +549,24 @@
     function togGrid(){S.grid=!S.grid;ws.classList.toggle('no-grid',!S.grid);document.getElementById('gBtn').classList.toggle('on',S.grid)}
     function togSnap(){S.snap=!S.snap;document.getElementById('sBtn').classList.toggle('on',S.snap);toast(S.snap?'Snap ON':'Snap OFF','ok')}
 
-    function mkEl(type,p){saveU();const el={id:gid(),type,x:p.x||0,y:p.y||0,width:p.width||120,height:p.height||100,x2:p.x2||0,y2:p.y2||0,fill:p.fill||S.fc,stroke:p.stroke||S.sc,strokeWidth:p.strokeWidth!=null?p.strokeWidth:S.sw,fontSize:p.fontSize||S.fs,text:p.text||'',opacity:1,src:p.src||'',isLocal:p.isLocal||false,points:p.points?p.points.map(pt=>({...pt})):[],animation:{type:'none',duration:'1s',delay:'0s',iteration:'1',easing:'ease'}};if(type==='text'&&el.text){const m=measureText(el.text,el.fontSize);el.width=m.w;el.height=m.h}S.els.push(el);rEl(el);uLay();return el}
+    function mkEl(type,p){saveU();const el={id:gid(),type,x:p.x||0,y:p.y||0,width:p.width||120,height:p.height||100,x2:p.x2||0,y2:p.y2||0,fill:p.fill||S.fc,stroke:p.stroke||S.sc,strokeWidth:p.strokeWidth!=null?p.strokeWidth:S.sw,fontSize:p.fontSize||S.fs,text:p.text||'',opacity:1,src:p.src||'',isLocal:p.isLocal||false,points:p.points?p.points.map(pt=>({...pt})):[],animation:{type:'none',duration:'1s',delay:'0s',iteration:'1',easing:'ease'},href:p.href||'',anchorId:p.anchorId||''};if(type==='text'&&el.text){const m=measureText(el.text,el.fontSize);el.width=m.w;el.height=m.h}S.els.push(el);rEl(el);uLay();return el}
     function rmEl(id){const d=ws.querySelector('div[data-id="'+id+'"]');if(d)d.remove();const g=svgO.querySelector('g[data-id="'+id+'"]');if(g)g.remove()}
     function uEl(el){rmEl(el.id);rEl(el);uSO();uCtxValues()}
 
     function rEl(el){if(el.type==='freehand'||el.type==='line')rSVG(el);else rDiv(el)}
-    function rDiv(el){const d=document.createElement('div');d.className='we';d.dataset.id=el.id;const s=d.style;s.left=el.x+'px';s.top=el.y+'px';s.width=el.width+'px';s.height=el.height+'px';s.opacity=el.opacity;if(el.type==='rect'){s.background=el.fill;s.border=el.strokeWidth>0?el.strokeWidth+'px solid '+el.stroke:'none';s.borderRadius='4px'}else if(el.type==='circle'){s.background=el.fill;s.border=el.strokeWidth>0?el.strokeWidth+'px solid '+el.stroke:'none';s.borderRadius='50%'}else if(el.type==='text'){s.color=el.fill;s.fontSize=el.fontSize+'px';s.fontWeight='600';s.lineHeight='1.2';s.whiteSpace='pre-wrap';s.wordWrap='break-word';s.overflow='hidden';s.background='none';s.border='none';d.textContent=el.text}else if(el.type==='image'){s.overflow='hidden';s.border='none';s.background='none';const img=document.createElement('img');img.src=el.src;img.style.width='100%';img.style.height='100%';img.style.objectFit='cover';img.draggable=false;d.appendChild(img)}if(el.animation&&el.animation.type!=='none'&&S.gesture==='IDLE')s.animation=el.animation.type+' '+el.animation.duration+' '+el.animation.easing+' '+el.animation.delay+' '+el.animation.iteration+' both';ws.appendChild(d)}
-    function rSVG(el){const ns='http://www.w3.org/2000/svg',g=document.createElementNS(ns,'g');g.dataset.id=el.id;if(el.type==='line'){const h=document.createElementNS(ns,'line');h.setAttribute('x1',el.x);h.setAttribute('y1',el.y);h.setAttribute('x2',el.x2);h.setAttribute('y2',el.y2);h.setAttribute('stroke','transparent');h.setAttribute('stroke-width',24);h.setAttribute('fill','none');h.classList.add('se');h.dataset.id=el.id;const v=document.createElementNS(ns,'line');v.setAttribute('x1',el.x);v.setAttribute('y1',el.y);v.setAttribute('x2',el.x2);v.setAttribute('y2',el.y2);v.setAttribute('stroke',el.stroke);v.setAttribute('stroke-width',el.strokeWidth);v.setAttribute('stroke-linecap','round');v.setAttribute('fill','none');v.style.pointerEvents='none';g.appendChild(h);g.appendChild(v)}else if(el.type==='freehand'){const pd=pts2d(el.points);if(!pd)return;const h=document.createElementNS(ns,'path');h.setAttribute('d',pd);h.setAttribute('stroke','transparent');h.setAttribute('stroke-width',24);h.setAttribute('fill','none');h.classList.add('se');h.dataset.id=el.id;const v=document.createElementNS(ns,'path');v.setAttribute('d',pd);v.setAttribute('stroke',el.stroke);v.setAttribute('stroke-width',el.strokeWidth);v.setAttribute('fill','none');v.setAttribute('stroke-linecap','round');v.setAttribute('stroke-linejoin','round');v.style.pointerEvents='none';g.appendChild(h);g.appendChild(v)}if(el.animation&&el.animation.type!=='none'&&S.gesture==='IDLE')g.style.animation=el.animation.type+' '+el.animation.duration+' '+el.animation.easing+' '+el.animation.delay+' '+el.animation.iteration+' both';svgO.appendChild(g)}
+    function rDiv(el){
+      const d=document.createElement(el.href?'a':'div');d.className='we';d.dataset.id=el.id;
+      if(el.href)d.href=el.href;
+      if(el.anchorId)d.id=el.anchorId;
+      const s=d.style;s.left=el.x+'px';s.top=el.y+'px';s.width=el.width+'px';s.height=el.height+'px';s.opacity=el.opacity;s.textDecoration='none';
+      if(el.type==='rect'){s.background=el.fill;s.border=el.strokeWidth>0?el.strokeWidth+'px solid '+el.stroke:'none';s.borderRadius='4px'}
+      else if(el.type==='circle'){s.background=el.fill;s.border=el.strokeWidth>0?el.strokeWidth+'px solid '+el.stroke:'none';s.borderRadius='50%'}
+      else if(el.type==='text'){s.color=el.fill;s.fontSize=el.fontSize+'px';s.fontWeight='600';s.lineHeight='1.2';s.whiteSpace='pre-wrap';s.wordWrap='break-word';s.overflow='hidden';s.background='none';s.border='none';d.textContent=el.text}
+      else if(el.type==='image'){s.overflow='hidden';s.border='none';s.background='none';const img=document.createElement('img');img.src=el.src;img.style.width='100%';img.style.height='100%';img.style.objectFit='cover';img.draggable=false;d.appendChild(img)}
+      if(el.animation&&el.animation.type!=='none'&&S.gesture==='IDLE')s.animation=el.animation.type+' '+el.animation.duration+' '+el.animation.easing+' '+el.animation.delay+' '+el.animation.iteration+' both';
+      ws.appendChild(d);
+    }
+    function rSVG(el){const ns='http://www.w3.org/2000/svg',g=document.createElementNS(ns,'g');g.dataset.id=el.id;if(el.anchorId)g.id=el.anchorId;if(el.type==='line'){const h=document.createElementNS(ns,'line');h.setAttribute('x1',el.x);h.setAttribute('y1',el.y);h.setAttribute('x2',el.x2);h.setAttribute('y2',el.y2);h.setAttribute('stroke','transparent');h.setAttribute('stroke-width',24);h.setAttribute('fill','none');h.classList.add('se');h.dataset.id=el.id;const v=document.createElementNS(ns,'line');v.setAttribute('x1',el.x);v.setAttribute('y1',el.y);v.setAttribute('x2',el.x2);v.setAttribute('y2',el.y2);v.setAttribute('stroke',el.stroke);v.setAttribute('stroke-width',el.strokeWidth);v.setAttribute('stroke-linecap','round');v.setAttribute('fill','none');v.style.pointerEvents='none';g.appendChild(h);g.appendChild(v)}else if(el.type==='freehand'){const pd=pts2d(el.points);if(!pd)return;const h=document.createElementNS(ns,'path');h.setAttribute('d',pd);h.setAttribute('stroke','transparent');h.setAttribute('stroke-width',24);h.setAttribute('fill','none');h.classList.add('se');h.dataset.id=el.id;const v=document.createElementNS(ns,'path');v.setAttribute('d',pd);v.setAttribute('stroke',el.stroke);v.setAttribute('stroke-width',el.strokeWidth);v.setAttribute('fill','none');v.setAttribute('stroke-linecap','round');v.setAttribute('stroke-linejoin','round');v.style.pointerEvents='none';g.appendChild(h);g.appendChild(v)}if(el.animation&&el.animation.type!=='none'&&S.gesture==='IDLE')g.style.animation=el.animation.type+' '+el.animation.duration+' '+el.animation.easing+' '+el.animation.delay+' '+el.animation.iteration+' both';svgO.appendChild(g)}
 
     function selEl(id){S.sel=id;uSO();uCtxBar();uLay()}
     function desel(){S.sel=null;so.style.display='none';so.innerHTML='';ctxBar.classList.remove('active');uLay()}
@@ -429,7 +590,6 @@
 
     document.querySelectorAll('.sh-btn[data-sh]').forEach(c=>{c.addEventListener('pointerdown',e=>{e.preventDefault();const sh=e.currentTarget.dataset.sh;S.gesture='SIDEBAR';IX.sbShape=sh;ghost.style.display='flex';ghost.innerHTML=e.currentTarget.innerHTML;ghost.style.left=e.clientX+'px';ghost.style.top=e.clientY+'px';const move=ev=>{ghost.style.left=ev.clientX+'px';ghost.style.top=ev.clientY+'px';const wr=ws.getBoundingClientRect();ws.classList.toggle('drop-active',ev.clientX>=wr.left&&ev.clientX<=wr.right&&ev.clientY>=wr.top&&ev.clientY<=wr.bottom)};const up=ev=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up);document.removeEventListener('pointercancel',up);ghost.style.display='none';ws.classList.remove('drop-active');S.gesture='IDLE';const wr=ws.getBoundingClientRect();if(ev.clientX>=wr.left&&ev.clientX<=wr.right&&ev.clientY>=wr.top&&ev.clientY<=wr.bottom){const p=gpos(ev.clientX,ev.clientY);if(sh==='text'){const txtColor=getContrastYIQ(S.bg);const el=mkEl('text',{x:snap(p.x-40),y:snap(p.y-18),text:'Double-click to edit',fill:txtColor,fontSize:S.fs});selEl(el.id);toast('Text placed','ok')}else{const el=mkEl(sh,sh==='rect'?{x:snap(p.x-60),y:snap(p.y-50),width:120,height:100}:sh==='circle'?{x:snap(p.x-50),y:snap(p.y-50),width:100,height:100}:{x:snap(p.x-60),y:snap(p.y),x2:snap(p.x+60),y2:snap(p.y),stroke:S.sc,strokeWidth:Math.max(S.sw,2)});selEl(el.id);toast(sh.charAt(0).toUpperCase()+sh.slice(1)+' placed','ok')}}};document.addEventListener('pointermove',move);document.addEventListener('pointerup',up);document.addEventListener('pointercancel',up)})});
 
-    // Clipboard Paste Image
     document.addEventListener('paste',e=>{if(document.getElementById('app').style.display==='none')return;const items=e.clipboardData.items;for(let i=0;i<items.length;i++){if(items[i].type.indexOf('image')!==-1){const file=items[i].getAsFile();const reader=new FileReader();reader.onload=ev=>{const src=ev.target.result;const wr=ws.getBoundingClientRect();const el=mkEl('image',{x:wr.width/2-100,y:wr.height/2-100,width:200,height:200,src:src,isLocal:true});selEl(el.id);toast('Image pasted from clipboard','ok')};reader.readAsDataURL(file);e.preventDefault();break}}});
 
     function showImgMenu(){document.getElementById('imgM').style.display='flex';document.getElementById('imgUrlI').value='';setTimeout(()=>document.getElementById('imgUrlI').focus(),50)}
@@ -450,7 +610,90 @@
 
     document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT'||e.target.isContentEditable)return;switch(e.key.toLowerCase()){case'v':setM('select');break;case'p':setM('freehand');break;case'delete':case'backspace':if(S.sel)doDel(S.sel);break;case'escape':desel();break;case'd':if(e.ctrlKey||e.metaKey){e.preventDefault();doDupe()}break;case'z':if(e.ctrlKey||e.metaKey){e.preventDefault();if(e.shiftKey)doRedo();else doUndo()}break;case'g':togGrid();break}});
 
-    function showExport(){const hasLocal=S.els.some(e=>e.type==='image'&&e.isLocal);const W=ws.clientWidth||'100%',H=ws.clientHeight||'100%';let kf='',ec='',eh='';const used=new Set();S.els.forEach(e=>used.add(e.animation.type));used.forEach(a=>{if(AN[a]&&AN[a].c)kf+=AN[a].c+'\n'});const assetsMap={};let assetIdx=1;S.els.forEach(el=>{const cls='sf-'+el.id;let an='';if(el.animation.type!=='none')an='animation:'+el.animation.type+' '+el.animation.duration+' '+el.animation.easing+' '+el.animation.delay+' '+el.animation.iteration+' both;transform-origin:center;';let imgSrc=el.src;if(el.type==='image'&&el.isLocal){const ext=el.src.substring('data:image/'.length,el.src.indexOf(';base64'));const fname=`img_${assetIdx}.${ext}`;assetsMap[fname]=el.src;imgSrc='./'+fname;assetIdx++}if(el.type==='rect'){ec+='.'+cls+'{position:absolute;left:'+el.x+'px;top:'+el.y+'px;width:'+el.width+'px;height:'+el.height+'px;background:'+el.fill+';border:'+el.strokeWidth+'px solid '+el.stroke+';border-radius:4px;opacity:'+el.opacity+';'+an+'}\n';eh+='    <div class="'+cls+'"></div>\n'}else if(el.type==='circle'){ec+='.'+cls+'{position:absolute;left:'+el.x+'px;top:'+el.y+'px;width:'+el.width+'px;height:'+el.height+'px;background:'+el.fill+';border:'+el.strokeWidth+'px solid '+el.stroke+';border-radius:50%;opacity:'+el.opacity+';'+an+'}\n';eh+='    <div class="'+cls+'"></div>\n'}else if(el.type==='text'){ec+='.'+cls+'{position:absolute;left:'+el.x+'px;top:'+el.y+'px;width:'+el.width+'px;height:'+el.height+'px;color:'+el.fill+';font-size:'+el.fontSize+'px;font-family:\'Space Grotesk\',system-ui,sans-serif;font-weight:600;line-height:1.2;white-space:pre-wrap;opacity:'+el.opacity+';'+an+'}\n';eh+='    <div class="'+cls+'">'+el.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div>\n'}else if(el.type==='image'){ec+='.'+cls+'{position:absolute;left:'+el.x+'px;top:'+el.y+'px;width:'+el.width+'px;height:'+el.height+'px;opacity:'+el.opacity+';'+an+'}\n';eh+='    <div class="'+cls+'"><img src="'+imgSrc+'" style="width:100%;height:100%;object-fit:cover"></div>\n'}else if(el.type==='line'||el.type==='freehand'){const d=el.type==='line'?'M '+el.x+' '+el.y+' L '+el.x2+' '+el.y2:pts2d(el.points);ec+='.'+cls+'{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;'+an+'}\n';eh+='    <svg class="'+cls+'" xmlns="http://www.w3.org/2000/svg"><path d="'+d+'" stroke="'+el.stroke+'" stroke-width="'+el.strokeWidth+'" fill="none" stroke-linecap="round"/></svg>\n'}});S.exCode='<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>V2H Export</title>\n  <style>\n    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}\n    body{background:'+S.bg+'}\n    .canvas{position:relative;width:'+W+'px;height:'+H+'px;background:'+S.bg+';overflow:hidden;margin:0 auto}\n'+kf+ec+'  </style>\n</head>\n<body>\n  <div class="canvas">\n'+eh+'  </div>\n</body>\n</html>';document.getElementById('exM').style.display='flex';if(hasLocal){const zip=new JSZip();zip.file("index.html",S.exCode);zip.file("v2h_state.json",JSON.stringify({name:S.projectName,state:S}));for(const filename in assetsMap){const base64=assetsMap[filename].split(',')[1];zip.file(filename,base64,{base64:true})}zip.generateAsync({type:"blob"}).then(function(content){const u=URL.createObjectURL(content);const a=document.createElement('a');a.href=u;const zipName=(S.projectName.replace(/\s+/g,'_')||'project')+'.zip';a.download=zipName;a.style.cssText='position:fixed;left:-9999px';document.body.appendChild(a);setTimeout(()=>{a.click();setTimeout(()=>{if(a.parentNode)document.body.removeChild(a);URL.revokeObjectURL(u)},3000)},100);toast('Downloading ZIP...','ok');exClose()})}else{const b=new Blob([S.exCode],{type:'text/html;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='index.html';a.style.cssText='position:fixed;left:-9999px';document.body.appendChild(a);setTimeout(()=>{a.click();setTimeout(()=>{if(a.parentNode)document.body.removeChild(a);URL.revokeObjectURL(u)},3000)},100);toast('Downloading HTML...','ok');exClose()}}
+    // --- MULTI-PAGE EXPORT LOGIC ---
+    function generatePageHTML(page) {
+      // Temporarily switch S.els to the page's els for rendering functions
+      let originalEls = S.els;
+      S.els = page.els || [];
+      
+      const W=ws.clientWidth||'100%',H=ws.clientHeight||'100%';
+      let kf='',ec='',eh='';
+      const used=new Set();S.els.forEach(e=>used.add(e.animation.type));used.forEach(a=>{if(AN[a]&&AN[a].c)kf+=AN[a].c+'\n'});
+      const assetsMap = {}; let assetIdx = 1;
+
+      S.els.forEach(el=>{
+        const cls='sf-'+el.id;
+        let an='';
+        if(el.animation.type!=='none')an='animation:'+el.animation.type+' '+el.animation.duration+' '+el.animation.easing+' '+el.animation.delay+' '+el.animation.iteration+' both;transform-origin:center;';
+        let imgSrc=el.src;
+        if(el.type==='image'&&el.isLocal){
+          const ext=el.src.substring('data:image/'.length,el.src.indexOf(';base64'));
+          const fname=`img_${assetIdx}.${ext}`;
+          assetsMap[fname]=el.src;
+          imgSrc='./'+fname;assetIdx++;
+        }
+        const tag = el.href ? 'a' : 'div';
+        const hrefAttr = el.href ? `href="${el.href}"` : '';
+        const idAttr = el.anchorId ? `id="${el.anchorId}"` : '';
+        
+        if(el.type==='rect'){ec+='.'+cls+'{position:absolute;left:'+el.x+'px;top:'+el.y+'px;width:'+el.width+'px;height:'+el.height+'px;background:'+el.fill+';border:'+el.strokeWidth+'px solid '+el.stroke+';border-radius:4px;opacity:'+el.opacity+';text-decoration:none;'+an+'}\n';eh+='    <'+tag+' class="'+cls+'" '+hrefAttr+' '+idAttr+'></'+tag+'>\n'}
+        else if(el.type==='circle'){ec+='.'+cls+'{position:absolute;left:'+el.x+'px;top:'+el.y+'px;width:'+el.width+'px;height:'+el.height+'px;background:'+el.fill+';border:'+el.strokeWidth+'px solid '+el.stroke+';border-radius:50%;opacity:'+el.opacity+';text-decoration:none;'+an+'}\n';eh+='    <'+tag+' class="'+cls+'" '+hrefAttr+' '+idAttr+'></'+tag+'>\n'}
+        else if(el.type==='text'){ec+='.'+cls+'{position:absolute;left:'+el.x+'px;top:'+el.y+'px;width:'+el.width+'px;height:'+el.height+'px;color:'+el.fill+';font-size:'+el.fontSize+'px;font-family:\'Space Grotesk\',system-ui,sans-serif;font-weight:600;line-height:1.2;white-space:pre-wrap;opacity:'+el.opacity+';text-decoration:none;'+an+'}\n';eh+='    <'+tag+' class="'+cls+'" '+hrefAttr+' '+idAttr+'>'+el.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</'+tag+'>\n'}
+        else if(el.type==='image'){ec+='.'+cls+'{position:absolute;left:'+el.x+'px;top:'+el.y+'px;width:'+el.width+'px;height:'+el.height+'px;opacity:'+el.opacity+';text-decoration:none;'+an+'}\n';eh+='    <'+tag+' class="'+cls+'" '+hrefAttr+' '+idAttr+'><img src="'+imgSrc+'" style="width:100%;height:100%;object-fit:cover"></'+tag+'>\n'}
+        else if(el.type==='line'||el.type==='freehand'){const d=el.type==='line'?'M '+el.x+' '+el.y+' L '+el.x2+' '+el.y2:pts2d(el.points);ec+='.'+cls+'{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;'+an+'}\n';eh+='    <svg class="'+cls+'" '+idAttr+' xmlns="http://www.w3.org/2000/svg"><path d="'+d+'" stroke="'+el.stroke+'" stroke-width="'+el.strokeWidth+'" fill="none" stroke-linecap="round"/></svg>\n'}
+      });
+
+      // Check if any page has anchors for smooth scroll
+      let hasAnchors = S.els.some(e => e.anchorId);
+      let smoothScroll = hasAnchors ? 'html{scroll-behavior:smooth;}' : '';
+
+      const html='<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>${page.name}</title>\n  <style>\n    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}\n    body{background:'+S.bg+'}\n    .canvas{position:relative;width:'+W+'px;height:'+H+'px;background:'+S.bg+';overflow:hidden;margin:0 auto}\n    '+smoothScroll+'\n'+kf+ec+'  </style>\n</head>\n<body>\n  <div class="canvas">\n'+eh+'  </div>\n</body>\n</html>';
+      
+      S.els = originalEls; // Restore
+      return {html, assetsMap};
+    }
+
+    function showExport(){
+      // Save current els to active page first
+      getActivePage().els = S.els;
+      
+      const isMultiPage = S.pages.length > 1;
+      let allAssets = {};
+      let htmlFiles = {};
+      
+      S.pages.forEach(page => {
+        const res = generatePageHTML(page);
+        const filename = (page.id === 'index' ? 'index' : page.id) + '.html';
+        htmlFiles[filename] = res.html;
+        Object.assign(allAssets, res.assetsMap);
+      });
+
+      // If single page and no local images, just download index.html
+      if(!isMultiPage && Object.keys(allAssets).length === 0) {
+        S.exCode = htmlFiles['index.html'];
+        document.getElementById('exM').style.display='flex';
+        const b=new Blob([S.exCode],{type:'text/html;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='index.html';a.style.cssText='position:fixed;left:-9999px';document.body.appendChild(a);setTimeout(()=>{a.click();setTimeout(()=>{if(a.parentNode)document.body.removeChild(a);URL.revokeObjectURL(u)},3000)},100);toast('Downloading HTML...','ok');exClose();
+      } else {
+        // Bundle ZIP
+        const zip = new JSZip();
+        for(const fname in htmlFiles) zip.file(fname, htmlFiles[fname]);
+        zip.file("v2h_state.json", JSON.stringify({name:S.projectName, state:S}));
+        for(const fname in allAssets){
+          const base64 = allAssets[fname].split(',')[1];
+          zip.file(fname, base64, {base64: true});
+        }
+        zip.generateAsync({type:"blob"}).then(function(content){
+          const u=URL.createObjectURL(content);
+          const a=document.createElement('a');a.href=u;
+          const zipName=(S.projectName.replace(/\s+/g,'_')||'project')+'.zip';
+          a.download=zipName;
+          a.style.cssText='position:fixed;left:-9999px';document.body.appendChild(a);
+          setTimeout(()=>{a.click();setTimeout(()=>{if(a.parentNode)document.body.removeChild(a);URL.revokeObjectURL(u)},3000)},100);
+          toast('Downloading ZIP...','ok');
+          exClose();
+        });
+      }
+    }
     function exClose(){document.getElementById('exM').style.display='none'}
     function exCopy(){if(!S.exCode)return;try{navigator.clipboard.writeText(S.exCode).then(()=>toast('Copied!','ok')).catch(()=>fbCopy())}catch(e){fbCopy()}}
     function fbCopy(){const ta=document.createElement('textarea');ta.value=S.exCode;ta.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01';ta.style.webkitUserSelect='text';ta.style.userSelect='text';document.body.appendChild(ta);ta.focus();ta.setSelectionRange(0,ta.value.length);try{document.execCommand('copy');toast('Copied!','ok')}catch(e){toast('Copy failed','er')}document.body.removeChild(ta)}
