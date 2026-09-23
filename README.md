@@ -14,6 +14,23 @@
 
 ---
 
+## 🚀 New: V2H Platform (fullstack)
+
+The `platform/` directory turns Stack into a full platform — a local-first competitor to WordPress, Odoo App Maker and Figma in one zero-dependency Node server:
+
+* **Design Studio** — the visual canvas (this app), upgraded with cloud project sync and one-click publishing.
+* **App Maker** — Odoo-style no-code data apps: design a schema, fill records, share a live app at `/app/<slug>`.
+* **Publishing** — WordPress-style hosting: sites go live instantly at `/s/<slug>/` with SEO settings, custom CSS, and live content from your collections.
+
+```bash
+cd platform
+npm start        # → http://localhost:3000  (Node 18+, no dependencies, no database server)
+```
+
+Full docs: [`platform/README.md`](platform/README.md).
+
+---
+
 ## The Vision: Pure Code, Visually Crafted
 
 Modern website builders (Webflow, Framer) lock you into ecosystems and output bloated, framework-dependent code. Stack is built for the **Git-to-Vercel developer**. 

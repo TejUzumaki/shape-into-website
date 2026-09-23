@@ -1,0 +1,14 @@
+{
+  "name": "v2h-platform",
+  "version": "1.0.0",
+  "description": "V2H Platform — fullstack visual site builder, CMS and low-code app maker",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}

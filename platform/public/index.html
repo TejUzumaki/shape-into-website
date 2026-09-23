@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="description" content="V2H Platform — design sites visually, build data apps without code, publish live.">
+  <title>V2H Platform — Design. Build. Publish.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/app.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='white'/%3E%3C/svg%3E">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="flex items-center gap-3">
+      <svg class="logo-svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="#fff"/><g transform="translate(133 133) scale(10.25 10.25)"><g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M14.692 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.804"/><path d="M2.264 13.752L7 16.5l4.737-2.748"/><path d="M2.995 13.014A2 2 0 0 0 2 14.744v3.516a2 2 0 0 0 .996 1.73l3 1.74a2 2 0 0 0 2.008 0l3-1.74A2 2 0 0 0 12 18.26v-3.517a2 2 0 0 0-.995-1.73l-3-1.742a2 2 0 0 0-1.892-.064zM7 16.5V22"/></g></g></svg>
+      <div>
+        <h1 class="font-semibold text-sm tracking-tight leading-none">V2H <span class="text-[#808080] font-normal">Platform</span></h1>
+        <p class="text-[9px] text-[#808080] leading-none mt-1">Sites · Apps · Data · Publish</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <a href="/studio.html" class="bg text-[11px]"><i class="fas fa-pen-ruler"></i> Studio</a>
+      <div id="userArea" class="flex items-center gap-2"></div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-5 pb-24">
+
+    <!-- hero -->
+    <section class="text-center pt-16 pb-12">
+      <h2 class="text-4xl md:text-6xl font-bold tracking-tighter mb-5">Design sites.<br>Build apps. Publish live.</h2>
+      <p class="text-sm md:text-base text-[#808080] max-w-xl mx-auto mb-8 leading-relaxed">
+        One platform: a visual canvas for pixel-perfect sites, a no-code database builder for real apps,
+        and one-click publishing with live URLs. Your data, your design, your code — no lock-in.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button onclick="newSite()" class="ba !px-8 !py-3.5 !text-sm"><i class="fas fa-plus"></i> New Site</button>
+        <button onclick="openNewApp()" class="bg !px-8 !py-3.5 !text-sm"><i class="fas fa-database"></i> New App</button>
+      </div>
+      <div id="guestNote" class="hidden mt-6 text-[11px] text-[#808080]">
+        <i class="fas fa-circle-info mr-1"></i>
+        You're browsing as a guest — projects stay in this browser.
+        <a href="#" onclick="showAuth('login');return false" class="text-white underline">Sign in</a> to sync, publish and build apps.
+      </div>
+    </section>
+
+    <!-- apps (collections) -->
+    <section class="mb-14">
+      <div class="flex justify-between items-center mb-5">
+        <div>
+          <h3 class="font-semibold text-lg">Your Apps</h3>
+          <p class="text-[11px] text-[#808080]">No-code data apps — schema, records and a live app URL.</p>
+        </div>
+        <button onclick="openNewApp()" class="bg text-[11px]"><i class="fas fa-plus"></i> New App</button>
+      </div>
+      <div id="appsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+    </section>
+
+    <!-- sites (design projects) -->
+    <section class="mb-14">
+      <div class="flex justify-between items-center mb-5">
+        <div>
+          <h3 class="font-semibold text-lg">Your Sites</h3>
+          <p class="text-[11px] text-[#808080]">Visual design projects — edit in the Studio, publish to a live URL.</p>
+        </div>
+        <button onclick="newSite()" class="bg text-[11px]"><i class="fas fa-plus"></i> New Site</button>
+      </div>
+      <div id="sitesGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+    </section>
+
+    <!-- published -->
+    <section class="mb-14">
+      <div class="mb-5">
+        <h3 class="font-semibold text-lg">Live on the Web</h3>
+        <p class="text-[11px] text-[#808080]">Everything you've published — sites and apps with public URLs.</p>
+      </div>
+      <div id="liveList" class="flex flex-col gap-3"></div>
+    </section>
+
+    <!-- feature strip -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-5 text-left">
+      <div class="panel p-6">
+        <i class="fas fa-canvas-grid text-lg mb-3 block" style="color:#fff"></i>
+        <h4 class="font-semibold text-sm mb-2">Visual Studio</h4>
+        <p class="text-[11px] text-[#808080] leading-relaxed">A Figma-style canvas: shapes, text, images, animations, layers — and it exports pure HTML.</p>
+      </div>
+      <div class="panel p-6">
+        <i class="fas fa-database text-lg mb-3 block" style="color:#fff"></i>
+        <h4 class="font-semibold text-sm mb-2">App Maker</h4>
+        <p class="text-[11px] text-[#808080] leading-relaxed">Odoo-style no-code apps: define your schema, fill records, get a shareable app for free.</p>
+      </div>
+      <div class="panel p-6">
+        <i class="fas fa-rocket text-lg mb-3 block" style="color:#fff"></i>
+        <h4 class="font-semibold text-sm mb-2">One-click Publish</h4>
+        <p class="text-[11px] text-[#808080] leading-relaxed">WordPress-style hosting: SEO settings, live data from your collections, instant URLs.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- auth modal -->
+  <div id="authModal" class="mb" style="display:none">
+    <div class="mx" style="width:360px">
+      <div class="flex items-center gap-3 mb-5">
+        <svg class="logo-svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="#fff"/><g transform="translate(133 133) scale(10.25 10.25)"><g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M14.692 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.804"/><path d="M2.264 13.752L7 16.5l4.737-2.748"/><path d="M2.995 13.014A2 2 0 0 0 2 14.744v3.516a2 2 0 0 0 .996 1.73l3 1.74a2 2 0 0 0 2.008 0l3-1.74A2 2 0 0 0 12 18.26v-3.517a2 2 0 0 0-.995-1.73l-3-1.742a2 2 0 0 0-1.892-.064zM7 16.5V22"/></g></g></svg>
+        <div>
+          <h3 id="authTitle" class="font-semibold text-sm">Welcome back</h3>
+          <p class="text-[10px] text-[#808080]">Sync projects, publish sites, build apps.</p>
+        </div>
+      </div>
+      <div id="registerFields" style="display:none">
+        <div class="pl">Name</div>
+        <input type="text" id="authName" class="pi mb-3" placeholder="Ada Lovelace" autocomplete="name">
+      </div>
+      <div class="pl">Email</div>
+      <input type="email" id="authEmail" class="pi mb-3" placeholder="you@example.com" autocomplete="email">
+      <div class="pl">Password</div>
+      <input type="password" id="authPass" class="pi mb-4" placeholder="••••••••" autocomplete="current-password">
+      <p id="authError" class="text-[11px] mb-3" style="color:var(--dn);display:none"></p>
+      <div class="flex items-center justify-between gap-2">
+        <button onclick="hideAuth()" class="bg text-[11px]">Guest mode</button>
+        <div class="flex gap-2">
+          <button id="authSwitch" class="bg text-[11px]" onclick="switchAuthMode()">Create account</button>
+          <button id="authSubmit" class="ba text-[11px]" onclick="submitAuth()">Sign in</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- new app modal -->
+  <div id="newAppModal" class="mb" style="display:none">
+    <div class="mx" style="width:440px">
+      <h3 class="font-semibold text-sm mb-1">New App</h3>
+      <p class="text-[10px] text-[#808080] mb-4">Pick a starting point — you can change everything later.</p>
+      <div class="pl">App name</div>
+      <input type="text" id="newAppName" class="pi mb-4" placeholder="e.g. Blog, Products, CRM…">
+      <div class="pl">Template</div>
+      <div id="templateGrid" class="grid grid-cols-2 gap-2 mb-4"></div>
+      <div class="flex justify-end gap-2">
+        <button onclick="hideNewApp()" class="bg text-[11px]">Cancel</button>
+        <button onclick="createApp()" class="ba text-[11px]"><i class="fas fa-database"></i> Create App</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>
