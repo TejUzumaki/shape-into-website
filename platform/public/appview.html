@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="description" content="A V2H live app.">
+  <title>App — V2H</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    :root{--bg:#000;--sf:#0a0a0a;--cd:#141414;--bd:#262626;--fg:#fff;--mt:#808080;--tl:#2ed573;--dn:#ff4757}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--fg);min-height:100vh}
+    h1,h2,h3{font-family:'Space Grotesk',sans-serif}
+    a{color:inherit}
+    ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+
+    .top{position:sticky;top:0;z-index:50;background:rgba(10,10,10,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .app-ico{width:40px;height:40px;border-radius:10px;border:1px solid var(--bd);background:var(--sf);display:flex;align-items:center;justify-content:center;font-size:15px}
+    .meta{flex:1;min-width:180px}
+    .meta h1{font-size:17px;font-weight:600}
+    .meta p{font-size:10px;color:var(--mt);margin-top:2px}
+    .search{background:var(--bg);border:1px solid var(--bd);border-radius:7px;color:var(--fg);font-size:12px;font-family:inherit;padding:8px 12px;outline:none;width:220px;max-width:100%}
+    .search:focus{border-color:var(--fg)}
+    .btn{background:var(--fg);color:#000;border:none;border-radius:7px;padding:8px 14px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+    .btn:active{transform:scale(.95)}
+    .btn.ghost{background:var(--cd);color:var(--fg);border:1px solid var(--bd);font-weight:500}
+    .btn.danger{color:var(--dn);border-color:rgba(255,71,87,.4)}
+
+    main{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+    .card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .1s,border-color .1s}
+    .card:hover{transform:translateY(-2px);border-color:#3a3a3a}
+    .card img.cover{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--cd)}
+    .card .cbody{padding:14px}
+    .card h3{font-size:14px;font-weight:600;margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .card p{font-size:11px;color:var(--mt);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .badge{display:inline-flex;align-items:center;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:99px;border:1px solid var(--bd);color:var(--mt)}
+
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--mt);padding:10px;border-bottom:1px solid var(--bd);font-weight:700;white-space:nowrap}
+    td{padding:11px 10px;border-bottom:1px solid #1b1b1b;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    tbody tr{cursor:pointer} tbody tr:hover td{background:rgba(255,255,255,.02)}
+
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+    .modal{background:var(--sf);border:1px solid var(--bd);border-radius:14px;padding:22px;width:100%;max-width:520px;max-height:86vh;overflow-y:auto}
+    .modal h2{font-size:18px;font-weight:600;margin-bottom:4px}
+    .modal .sub{font-size:10px;color:var(--mt);margin-bottom:18px}
+    .frow{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid #1b1b1b;font-size:13px}
+    .frow .fl{width:110px;color:var(--mt);font-size:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700;padding-top:2px;flex-shrink:0}
+    .frow .fv{flex:1;word-break:break-word;line-height:1.5}
+    .frow img{max-width:100%;border-radius:9px;border:1px solid var(--bd)}
+    .field-in{width:100%;background:var(--bg);border:1px solid var(--bd);border-radius:7px;padding:9px 11px;color:var(--fg);font-size:13px;font-family:inherit;outline:none;margin-top:4px}
+    .field-in:focus{border-color:var(--fg)}
+    .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--mt);font-weight:700}
+    .toasts{position:fixed;bottom:14px;right:14px;display:flex;flex-direction:column;gap:6px;z-index:200}
+    .toast{padding:9px 16px;background:var(--cd);border:1px solid var(--bd);border-radius:8px;font-size:12px;animation:t .3s ease}
+    @keyframes t{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+    .state{padding:70px 20px;text-align:center;color:var(--mt)}
+    .state i{font-size:26px;display:block;margin-bottom:14px;opacity:.6}
+    .brandfoot{text-align:center;color:#444;font-size:10px;padding:26px 0 10px}
+    .brandfoot a{color:#666}
+  </style>
+</head>
+<body>
+  <div class="top">
+    <div class="app-ico" id="appIco"><i class="fas fa-database"></i></div>
+    <div class="meta">
+      <h1 id="appName">…</h1>
+      <p id="appMeta">loading</p>
+    </div>
+    <input class="search" id="search" placeholder="Search…">
+    <button class="btn" id="addBtn" style="display:none" onclick="openForm()"><i class="fas fa-plus"></i> Add</button>
+  </div>
+
+  <main><div id="content"><div class="state"><i class="fas fa-spinner fa-spin"></i>Loading app…</div></div></main>
+  <div class="brandfoot">Built with <a href="/">V2H Platform</a></div>
+  <div class="toasts" id="toasts"></div>
+
+  <div class="overlay" id="detailOv" style="display:none" onclick="if(event.target===this)closeDetail()">
+    <div class="modal" id="detailBox"></div>
+  </div>
+
+  <div class="overlay" id="formOv" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+    <div class="modal">
+      <h2 id="formTitle">New record</h2>
+      <p class="sub" id="formSub"></p>
+      <div id="formFields"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+        <button class="btn ghost" onclick="document.getElementById('formOv').style.display='none'">Cancel</button>
+        <button class="btn" onclick="submitForm()"><i class="fas fa-floppy-disk"></i> Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+'use strict';
+const APP = '__APP_SLUG__';
+let coll = null, records = [], isOwner = false, editing = null, shown = [];
+
+function toast(m, bad) {
+  const t = document.createElement('div');
+  t.className = 'toast'; t.style[bad ? 'borderColor' : 'color'] = bad ? '#ff4757' : '';
+  t.textContent = m;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 2400);
+}
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function fmtDate(v) { if (!v) return ''; const d = new Date(v); return isNaN(d) ? esc(v) : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); }
+function primaryField() { return coll.fields.find(f => f.key === (coll.views||{}).primaryField) || coll.fields.find(f => f.type === 'text') || coll.fields[0]; }
+function imageField() { return coll.fields.find(f => f.key === (coll.views||{}).imageField) || coll.fields.find(f => f.type === 'image'); }
+
+async function boot() {
+  const token = localStorage.getItem('v2h_token');
+  try {
+    const res = await fetch('/api/public/collections/' + APP);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return state(err.error === 'This data is not public' ? 'lock' : 'missing');
+    }
+    const data = await res.json();
+    coll = data.collection;
+    document.title = coll.name + ' — V2H App';
+    document.getElementById('appName').textContent = coll.name;
+    document.getElementById('appIco').innerHTML = '<i class="fas ' + esc(coll.icon || 'fa-database') + '">';
+    document.querySelector('meta[name="description"]').setAttribute('content', coll.name + ' — a live V2H app');
+    if (token) {
+      try {
+        const probe = await fetch('/api/collections/' + APP, { headers: { Authorization: 'Bearer ' + token } });
+        isOwner = probe.ok;
+      } catch (e) { isOwner = false; }
+    }
+    await load();
+  } catch (e) { state('missing'); }
+}
+function state(kind) {
+  const el = document.getElementById('content');
+  if (kind === 'lock') el.innerHTML = '<div class="state"><i class="fas fa-lock"></i>This app is private.<br>The owner needs to make it public.</div>';
+  else el.innerHTML = '<div class="state"><i class="fas fa-box-open"></i>App not found.</div>';
+  document.getElementById('appMeta').textContent = kind === 'lock' ? 'private app' : '404';
+}
+async function load(search) {
+  const q = search ? ('?search=' + encodeURIComponent(search)) : '';
+  const res = await fetch('/api/public/collections/' + APP + '/records' + q);
+  const data = await res.json();
+  records = data.records || [];
+  shown = records;
+  document.getElementById('appMeta').textContent = records.length + ' record' + (records.length === 1 ? '' : 's') + (isOwner ? ' · owner mode' : '');
+  document.getElementById('addBtn').style.display = isOwner ? 'inline-flex' : 'none';
+  render();
+}
+document.getElementById('search').addEventListener('input', e => {
+  const v = e.target.value.trim().toLowerCase();
+  if (!v) { shown = records; render(); return; }
+  shown = records.filter(r => coll.fields.some(f => String(r[f.key] || '').toLowerCase().includes(v)));
+  render();
+});
+
+function sublineFor(r) {
+  const v = coll.views || {};
+  const keys = (v.listFields || []).filter(k => k !== (primaryField() || {}).key).slice(0, 2);
+  return keys.map(k => { const f = coll.fields.find(x => x.key === k); return f && r[f.key] ? esc(String(r[f.key]).slice(0, 140)) : ''; }).filter(Boolean).join(' · ');
+}
+function render() {
+  const c = document.getElementById('content');
+  if (!shown.length) { c.innerHTML = '<div class="state"><i class="fas fa-inbox"></i>No records yet.</div>'; return; }
+  const img = imageField(), pri = primaryField();
+  const layout = (coll.views || {}).layout || 'cards';
+  if (layout === 'table') {
+    let h = '<table><thead><tr>' + coll.fields.map(f => '<th>' + esc(f.name) + '</th>').join('') + '</tr></thead><tbody>';
+    shown.forEach((r, i) => {
+      h += '<tr onclick="openDetail(' + i + ')">' + coll.fields.map(f => {
+        const v = r[f.key];
+        if (f.type === 'boolean') return '<td style="color:' + (v ? 'var(--tl)' : '#444') + '"><i class="fas ' + (v ? 'fa-circle-check' : 'fa-circle') + '"></i></td>';
+        if (f.type === 'image') return '<td>' + (v ? '<img src="' + esc(v) + '" style="width:32px;height:32px;border-radius:6px;object-fit:cover">' : '<span style="color:#444">—</span>') + '</td>';
+        if (f.type === 'select') return '<td>' + (v ? '<span class="badge">' + esc(v) + '</span>' : '<span style="color:#444">—</span>') + '</td>';
+        if (f.type === 'date') return '<td>' + fmtDate(v) + '</td>';
+        return '<td>' + (v ? esc(String(v).slice(0, 80)) : '<span style="color:#444">—</span>') + '</td>';
+      }).join('') + '</tr>';
+    });
+    c.innerHTML = h + '</tbody></table>';
+    return;
+  }
+  c.innerHTML = '<div class="cards">' + shown.map((r, i) =>
+    '<div class="card" onclick="openDetail(' + i + ')">' +
+    (img && r[img.key] ? '<img class="cover" src="' + esc(r[img.key]) + '" loading="lazy" onerror="this.remove()">' : '') +
+    '<div class="cbody"><h3>' + (pri && r[pri.key] ? esc(r[pri.key]) : 'Record') + '</h3><p>' + sublineFor(r) + '</p></div></div>'
+  ).join('') + '</div>';
+}
+
+function openDetail(i) {
+  const r = shown[i];
+  const pri = primaryField();
+  let h = '<h2>' + (pri && r[pri.key] ? esc(r[pri.key]) : 'Record') + '</h2>' +
+    '<p class="sub">added ' + fmtDate(r.createdAt) + (isOwner ? ' · id ' + esc(r.id) : '') + '</p>';
+  coll.fields.forEach(f => {
+    const v = r[f.key];
+    if (v === '' || v == null || v === false) return;
+    let cell;
+    if (f.type === 'image') cell = '<img src="' + esc(v) + '" onerror="this.style.display=\'none\'">';
+    else if (f.type === 'boolean') cell = '<i class="fas fa-circle-check" style="color:var(--tl)"></i> yes';
+    else if (f.type === 'date') cell = fmtDate(v);
+    else if (f.type === 'select') cell = '<span class="badge">' + esc(v) + '</span>';
+    else if (f.type === 'url') cell = '<a href="' + esc(v) + '" target="_blank" style="text-decoration:underline">' + esc(v) + '</a>';
+    else if (f.type === 'longtext') cell = esc(v).replace(/\n/g, '<br>');
+    else cell = esc(v);
+    h += '<div class="frow"><div class="fl">' + esc(f.name) + '</div><div class="fv">' + cell + '</div></div>';
+  });
+  if (isOwner) {
+    h += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">' +
+      '<button class="btn ghost" onclick="openForm(\'' + esc(r.id) + '\')"><i class="fas fa-pen"></i> Edit</button>' +
+      '<button class="btn ghost danger" onclick="delRec(\'' + esc(r.id) + '\')"><i class="fas fa-trash"></i> Delete</button></div>';
+  }
+  document.getElementById('detailBox').innerHTML = h;
+  document.getElementById('detailOv').style.display = 'flex';
+}
+function closeDetail() { document.getElementById('detailOv').style.display = 'none'; }
+
+function openForm(id) {
+  editing = id ? records.find(r => r.id === id) : null;
+  closeDetail();
+  document.getElementById('formTitle').textContent = editing ? 'Edit record' : 'New record';
+  document.getElementById('formSub').textContent = coll.name;
+  document.getElementById('formFields').innerHTML = coll.fields.map(f => {
+    const val = editing ? editing[f.key] : '';
+    if (f.type === 'longtext') return '<div style="margin-bottom:12px"><div class="lbl">' + esc(f.name) + '</div><textarea class="field-in" rows="3" data-fk="' + f.key + '">' + esc(val) + '</textarea></div>';
+    if (f.type === 'boolean') return '<label style="display:flex;gap:9px;align-items:center;font-size:13px;cursor:pointer;margin:12px 0"><input type="checkbox" data-fk="' + f.key + '" ' + (val ? 'checked' : '') + ' style="accent-color:#fff;width:15px;height:15px"> ' + esc(f.name) + '</label>';
+    if (f.type === 'select') return '<div style="margin-bottom:12px"><div class="lbl">' + esc(f.name) + '</div><select class="field-in" data-fk="' + f.key + '"><option value="">—</option>' + (f.options || []).map(o => '<option ' + (o === val ? 'selected' : '') + '>' + esc(o) + '</option>').join('') + '</select></div>';
+    const t = f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text';
+    return '<div style="margin-bottom:12px"><div class="lbl">' + esc(f.name) + '</div><input type="' + t + '" class="field-in" data-fk="' + f.key + '" value="' + esc(val) + '"></div>';
+  }).join('');
+  document.getElementById('formOv').style.display = 'flex';
+}
+async function submitForm() {
+  const body = {};
+  document.querySelectorAll('#formFields [data-fk]').forEach(inp => {
+    const f = coll.fields.find(x => x.key === inp.dataset.fk);
+    body[f.key] = f.type === 'boolean' ? inp.checked : inp.value;
+  });
+  const token = localStorage.getItem('v2h_token');
+  const url = editing ? '/api/collections/' + coll.id + '/records/' + editing.id : '/api/collections/' + coll.id + '/records';
+  const res = await fetch(url, {
+    method: editing ? 'PUT' : 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); toast(e.error || 'Save failed', true); return; }
+  document.getElementById('formOv').style.display = 'none';
+  toast(editing ? 'Updated' : 'Added');
+  load(document.getElementById('search').value.trim().toLowerCase() || undefined);
+}
+async function delRec(id) {
+  if (!confirm('Delete this record?')) return;
+  const token = localStorage.getItem('v2h_token');
+  const res = await fetch('/api/collections/' + coll.id + '/records/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + token } });
+  if (!res.ok) { toast('Delete failed', true); return; }
+  closeDetail(); toast('Deleted');
+  load();
+}
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Runtime data (accounts, projects, records, published sites) — never publish
+platform/data/
+
+node_modules/
+*.log
+.DS_Store

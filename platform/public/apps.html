@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <meta name="description" content="V2H App Maker — build data apps without code.">
+  <title>App Maker — V2H</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+
+  <header class="topbar">
+    <div class="flex items-center gap-3">
+      <a href="/" class="ab" title="Dashboard" style="height:32px;min-width:32px;border-radius:6px;border:1px solid var(--bd);background:var(--cd);display:flex;align-items:center;justify-content:center;color:var(--mt)"><i class="fas fa-arrow-left"></i></a>
+      <svg class="logo-svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="#fff"/><g transform="translate(133 133) scale(10.25 10.25)"><g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M14.692 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.804"/><path d="M2.264 13.752L7 16.5l4.737-2.748"/><path d="M2.995 13.014A2 2 0 0 0 2 14.744v3.516a2 2 0 0 0 .996 1.73l3 1.74a2 2 0 0 0 2.008 0l3-1.74A2 2 0 0 0 12 18.26v-3.517a2 2 0 0 0-.995-1.73l-3-1.742a2 2 0 0 0-1.892-.064zM7 16.5V22"/></g></g></svg>
+      <div>
+        <h1 class="font-semibold text-sm leading-none">App Maker</h1>
+        <p class="text-[9px] text-[#808080] leading-none mt-1">Schema · Records · Live app</p>
+      </div>
+    </div>
+    <div id="headerRight" class="flex items-center gap-2"></div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- collection list -->
+    <aside class="w-56 bg-[#0a0a0a] border-r border-[#262626] flex flex-col shrink-0">
+      <div class="px-3 pt-3 pb-2 flex items-center justify-between border-b border-[#262626]">
+        <span class="text-[9px] text-[#808080] uppercase tracking-wider font-bold">Your Apps</span>
+        <button onclick="quickNewApp()" class="text-[10px] text-white" title="New app"><i class="fas fa-plus"></i></button>
+      </div>
+      <div id="collList" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1"></div>
+      <div class="p-3 border-t border-[#262626]">
+        <div class="text-[9px] text-[#808080] mb-2 uppercase tracking-wider font-bold">Live app</div>
+        <div id="shareBox" class="text-[10px] text-[#808080]">—</div>
+      </div>
+    </aside>
+
+    <!-- main -->
+    <main class="flex-1 overflow-hidden flex flex-col" id="mainWrap">
+      <div class="px-6 py-4 border-b border-[#262626] flex items-center gap-3 flex-wrap">
+        <div id="appIcon" class="w-10 h-10 rounded-[10px] border border-[#262626] bg-[#0a0a0a] flex items-center justify-center shrink-0"><i class="fas fa-database"></i></div>
+        <div class="flex-1 min-w-[160px]">
+          <input id="appName" class="bg-transparent outline-none text-lg font-semibold font-['Space_Grotesk'] w-full" value="Untitled" spellcheck="false">
+          <div class="text-[10px] text-[#808080]"><span id="appMeta">0 records · 0 fields</span> · <span id="appSlug" class="font-mono">—</span></div>
+        </div>
+        <button id="pubToggle" onclick="togglePublic()" class="bg text-[11px]"><i class="fas fa-lock"></i> Private</button>
+        <a id="openLive" href="#" target="_blank" class="ba text-[11px]"><i class="fas fa-arrow-up-right-from-square"></i> Open App</a>
+      </div>
+
+      <div class="px-6 pt-3 flex gap-1 border-b border-[#262626]">
+        <button data-tab="data" onclick="setTab('data')" class="tab-btn bg on text-[11px] !rounded-b-none !border-b-0"><i class="fas fa-table mr-1"></i> Data</button>
+        <button data-tab="schema" onclick="setTab('schema')" class="tab-btn bg text-[11px] !rounded-b-none !border-b-0"><i class="fas fa-sliders mr-1"></i> Schema</button>
+        <button data-tab="views" onclick="setTab('views')" class="tab-btn bg text-[11px] !rounded-b-none !border-b-0"><i class="fas fa-eye mr-1"></i> Views</button>
+      </div>
+
+      <!-- DATA -->
+      <section id="tab-data" class="flex-1 overflow-auto px-6 py-4">
+        <div class="flex items-center gap-2 mb-4">
+          <input id="searchBox" class="pi" style="max-width:280px" placeholder="Search records…" oninput="renderGrid()">
+          <div class="flex-1"></div>
+          <button onclick="openRecord()" class="ba text-[11px]"><i class="fas fa-plus"></i> Add Record</button>
+        </div>
+        <div class="panel overflow-x-auto">
+          <table class="grid-table" id="gridTable"></table>
+        </div>
+      </section>
+
+      <!-- SCHEMA -->
+      <section id="tab-schema" class="flex-1 overflow-auto px-6 py-4" style="display:none">
+        <p class="text-[11px] text-[#808080] mb-4">Fields define your data model — like Odoo models or Airtable fields. Existing records keep their values when you add fields.</p>
+        <div id="fieldList" class="flex flex-col gap-2 max-w-2xl"></div>
+        <div class="flex gap-2 mt-4">
+          <button onclick="addFieldRow()" class="bg text-[11px]"><i class="fas fa-plus"></i> Add Field</button>
+          <button onclick="saveSchema()" class="ba text-[11px]"><i class="fas fa-floppy-disk"></i> Save Schema</button>
+        </div>
+      </section>
+
+      <!-- VIEWS -->
+      <section id="tab-views" class="flex-1 overflow-auto px-6 py-4" style="display:none">
+        <p class="text-[11px] text-[#808080] mb-4">Configure how your live app renders — cards or table, which fields matter most.</p>
+        <div class="grid md:grid-cols-2 gap-4 max-w-2xl">
+          <div class="panel p-4">
+            <div class="pl">Primary (title) field</div>
+            <select id="viewPrimary" class="pi mb-3"></select>
+            <div class="pl">Image field</div>
+            <select id="viewImage" class="pi mb-3"></select>
+            <div class="pl">Layout</div>
+            <select id="viewLayout" class="pi">
+              <option value="cards">Cards</option>
+              <option value="table">Table</option>
+            </select>
+          </div>
+          <div class="panel p-4">
+            <div class="pl mb-2">Fields shown in list</div>
+            <div id="viewListFields" class="flex flex-col gap-1.5"></div>
+          </div>
+        </div>
+        <button onclick="saveViews()" class="ba text-[11px] mt-4"><i class="fas fa-floppy-disk"></i> Save Views</button>
+      </section>
+    </main>
+  </div>
+
+  <!-- record modal -->
+  <div id="recM" class="mb" style="display:none"><div class="mx" style="width:440px">
+    <h3 id="recMTitle" class="text-sm font-semibold mb-4">Add Record</h3>
+    <div id="recForm" class="flex flex-col gap-3"></div>
+    <div class="flex justify-end gap-2 mt-5">
+      <button onclick="hideRecord()" class="bg text-[11px]">Cancel</button>
+      <button onclick="saveRecord()" class="ba text-[11px]"><i class="fas fa-floppy-disk"></i> Save</button>
+    </div>
+  </div></div>
+
+  <div class="toast-root"></div>
+  <script src="/js/api.js"></script>
+  <script src="/js/appmaker.js"></script>
+</body>
+</html>

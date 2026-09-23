@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+  <meta name="description" content="V2H Studio — visual canvas that exports pure HTML and publishes live sites.">
+  <title>V2H Studio</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    :root{--bg:#000;--sf:#0a0a0a;--cd:#141414;--bd:#262626;--fg:#fff;--mt:#808080;--ac:#fff;--acd:rgba(255,255,255,.1);--tl:#2ed573;--dn:#ff4757}
+    *{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important;-webkit-tap-highlight-color:transparent!important;box-sizing:border-box;margin:0;padding:0}
+    html,body{touch-action:none!important;overscroll-behavior:none!important;overflow:hidden!important}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--fg);height:100vh;position:fixed;inset:0}
+    h1,h2,h3{font-family:'Space Grotesk',sans-serif}
+    input[type="text"],textarea,input[type="number"],input[type="email"],input[type="password"],select,[contenteditable]{-webkit-user-select:text!important;user-select:text!important;touch-action:manipulation!important}
+    input[type="color"],input[type="range"]{touch-action:manipulation!important}
+    ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+
+    #ws{background-color:#fff;background-image:linear-gradient(rgba(0,0,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.03) 1px,transparent 1px);background-size:20px 20px;position:relative;touch-action:none;transition:box-shadow .2s;flex:1;width:100%;height:100%;overflow:hidden}
+    #ws.drop-active{box-shadow:0 0 0 3px var(--ac),0 0 40px rgba(255,255,255,.2)!important}
+    #ws.no-grid{background-image:none!important}
+
+    .sh-btn{width:36px;height:36px;border-radius:6px;border:1px solid var(--bd);background:var(--cd);display:flex;align-items:center;justify-content:center;touch-action:none;transition:all .12s;font-size:12px;color:var(--mt)}
+    .sh-btn:active{transform:scale(.9);border-color:var(--ac);color:var(--ac)}
+
+    .ab{height:32px;min-width:32px;border-radius:6px;border:1px solid var(--bd);background:var(--cd);display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:all .1s;font-size:11px;color:var(--mt);padding:0 7px;gap:4px;font-family:'DM Sans',sans-serif}
+    .ab:active{transform:scale(.9);background:var(--bd)}.ab.on{border-color:var(--ac);background:var(--acd);color:var(--ac)}
+
+    #dragGhost{position:fixed;pointer-events:none;z-index:99999;width:50px;height:50px;border-radius:6px;background:rgba(20,20,20,.92);border:1px solid var(--ac);display:none;align-items:center;justify-content:center;box-shadow:0 12px 40px rgba(0,0,0,.8);transform:translate(-50%,-50%);font-size:14px;color:var(--fg)}
+
+    .we{position:absolute;touch-action:none}
+    #so{position:absolute;pointer-events:none;z-index:900;display:none;touch-action:none}
+
+    .rh,.ep{position:absolute;width:30px;height:30px;display:flex;align-items:center;justify-content:center;pointer-events:auto;touch-action:auto;z-index:901;background:transparent}
+    .rh::after,.ep::after{content:'';width:10px;height:10px;background:var(--ac);border:1px solid #000;border-radius:2px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+    .ep::after{width:12px;height:12px;border-radius:50%;background:var(--ac)}
+
+    .rh.h-tl{top:-15px;left:-15px;cursor:nwse-resize}.rh.h-tc{top:-15px;left:calc(50% - 15px);cursor:ns-resize}
+    .rh.h-tr{top:-15px;right:-15px;cursor:nesw-resize}.rh.h-ml{top:calc(50% - 15px);left:-15px;cursor:ew-resize}
+    .rh.h-mr{top:calc(50% - 15px);right:-15px;cursor:ew-resize}.rh.h-bl{bottom:-15px;left:-15px;cursor:nesw-resize}
+    .rh.h-bc{bottom:-15px;left:calc(50% - 15px);cursor:ns-resize}.rh.h-br{bottom:-15px;right:-15px;cursor:nwse-resize}
+    .ep{cursor:move;transform:translate(-50%,-50%)}
+
+    .cs{width:24px;height:24px;border-radius:4px;border:1px solid var(--bd);cursor:pointer;position:relative;overflow:hidden;flex-shrink:0;touch-action:manipulation}
+
+    .popover{position:absolute;top:48px;background:rgba(10,10,10,.98);backdrop-filter:blur(12px);border:1px solid var(--bd);border-radius:8px;padding:10px;z-index:800;display:none;width:200px;box-shadow:0 8px 30px rgba(0,0,0,.8)}
+    .popover.active{display:block}
+    .li{display:flex;align-items:center;gap:6px;padding:6px 7px;border-radius:6px;touch-action:manipulation;font-size:11px;border:1px solid transparent;transition:background .08s;cursor:pointer}
+    .li:active{background:var(--cd)}.li.on{background:var(--acd);border-color:rgba(255,255,255,.2)}
+    .li .ic{width:16px;text-align:center;color:var(--mt);font-size:10px}
+    .li .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .li .dl{color:var(--dn);font-size:10px;padding:3px;opacity:.3}
+
+    #svgO{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5;overflow:visible;touch-action:none}
+    .se{pointer-events:stroke;cursor:move;touch-action:none}
+
+    .ww{position:relative;display:flex;flex-direction:column;flex:1;overflow:hidden;background:radial-gradient(ellipse at center,rgba(255,255,255,.02) 0%,transparent 70%)}
+    #txtMeasure{position:absolute;visibility:hidden;white-space:pre;font-weight:600;line-height:1.2;font-family:'Space Grotesk',sans-serif}
+
+    #ctxBar{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(10,10,10,.95);backdrop-filter:blur(12px);border:1px solid var(--bd);border-radius:8px;padding:6px;z-index:800;display:none;gap:6px;align-items:center;flex-wrap:wrap;max-width:calc(100% - 24px);box-shadow:0 8px 30px rgba(0,0,0,.8)}
+    #ctxBar.active{display:flex}
+    .ctx-input{width:42px;background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:3px 4px;color:var(--fg);font-size:10px;outline:none;text-align:center}
+    .ctx-input:focus{border-color:var(--ac)}
+    .ctx-label{font-size:8px;color:var(--mt);text-transform:uppercase;letter-spacing:.5px;margin-right:2px;font-weight:600}
+    .ctx-divider{width:1px;height:20px;background:var(--bd);margin:0 2px}
+
+    .menu-item{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;color:var(--fg);cursor:pointer;touch-action:manipulation;border-radius:4px}
+    .menu-item:hover{background:var(--cd)}
+
+    #publishBar{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(10,10,10,.95);backdrop-filter:blur(12px);border:1px solid rgba(46,213,115,.4);border-radius:10px;padding:12px 16px;z-index:850;display:none;align-items:center;gap:10px;box-shadow:0 8px 30px rgba(0,0,0,.8)}
+    #publishBar.active{display:flex}
+  </style>
+</head>
+<body>
+
+  <div id="app" class="flex flex-col h-screen">
+    <header class="h-11 bg-[#0a0a0a] border-b border-[#262626] flex items-center px-3 justify-between shrink-0 z-50 relative">
+      <div class="flex items-center gap-2">
+        <button onclick="exitToDashboard()" class="ab" title="Back to dashboard"><i class="fas fa-arrow-left"></i></button>
+        <div class="w-px h-4 bg-[#262626] mx-1"></div>
+        <button onclick="doUndo()" class="ab" title="Undo (Ctrl+Z)"><i class="fas fa-rotate-left"></i></button>
+        <button onclick="doRedo()" class="ab" title="Redo (Ctrl+Shift+Z)"><i class="fas fa-rotate-right"></i></button>
+        <button onclick="doDupe()" class="ab" title="Duplicate (Ctrl+D)"><i class="fas fa-copy"></i></button>
+        <div class="w-px h-4 bg-[#262626] mx-1"></div>
+        <span id="projLabel" class="text-[11px] text-[#808080] max-w-[180px] truncate" title="Project">Untitled</span>
+        <span id="syncDot" class="text-[9px] text-[#808080]"><i class="fas fa-cloud"></i></span>
+      </div>
+
+      <div class="flex items-center gap-1">
+        <button onclick="togglePop('pagesPop', this)" id="pagesBtn" class="ab" title="Pages"><i class="fas fa-file"></i></button>
+        <button onclick="togglePop('layersPop', this)" id="layersBtn" class="ab" title="Layers"><i class="fas fa-layer-group"></i></button>
+        <button onclick="togglePop('animPop', this)" id="animBtn" class="ab" title="Animations"><i class="fas fa-bolt"></i></button>
+        <div class="w-px h-4 bg-[#262626] mx-1"></div>
+        <button onclick="togGrid()" class="ab on" id="gBtn" title="Grid (G)"><i class="fas fa-border-all"></i></button>
+        <button onclick="togSnap()" class="ab on" id="sBtn" title="Snap"><i class="fas fa-magnet"></i></button>
+        <button onclick="chgBgPrompt()" class="ab" title="Canvas background"><i class="fas fa-paint-roller"></i></button>
+        <button onclick="doClear()" class="ab" title="Clear page"><i class="fas fa-trash-can"></i></button>
+        <div class="w-px h-4 bg-[#262626] mx-1"></div>
+        <button onclick="showPublish()" class="ba" style="height:30px" title="Publish live"><i class="fas fa-cloud-arrow-up"></i> Publish</button>
+
+        <div class="relative">
+          <button onclick="togglePop('menuPop', this)" class="ab" title="Menu">
+            <svg class="logo-svg-sm" style="width:20px;height:20px;border-radius:4px" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="#fff"/><g transform="translate(133 133) scale(10.25 10.25)"><g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M14.692 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.804"/><path d="M2.264 13.752L7 16.5l4.737-2.748"/><path d="M2.995 13.014A2 2 0 0 0 2 14.744v3.516a2 2 0 0 0 .996 1.73l3 1.74a2 2 0 0 0 2.008 0l3-1.74A2 2 0 0 0 12 18.26v-3.517a2 2 0 0 0-.995-1.73l-3-1.742a2 2 0 0 0-1.892-.064zM7 16.5V22"/></g></g></svg>
+          </button>
+          <div id="menuPop" class="popover right-3" style="top:42px;width:190px;padding:4px">
+            <div class="menu-item" onclick="newProject()"><i class="fas fa-file-circle-plus w-4"></i> New Project</div>
+            <div class="menu-item" onclick="saveProject()"><i class="fas fa-floppy-disk w-4"></i> Save</div>
+            <div class="menu-item" onclick="saveProject(true)"><i class="fas fa-pen-to-square w-4"></i> Save As...</div>
+            <div class="border-t border-[#262626] my-1"></div>
+            <div class="menu-item" onclick="importProject()"><i class="fas fa-file-import w-4"></i> Import JSON</div>
+            <div class="menu-item" onclick="importZip()"><i class="fas fa-file-zipper w-4"></i> Import ZIP</div>
+            <div class="menu-item" onclick="exportProject()"><i class="fas fa-file-export w-4"></i> Export JSON</div>
+            <div class="border-t border-[#262626] my-1"></div>
+            <div class="menu-item" onclick="showExport()"><i class="fas fa-download w-4"></i> Export HTML/Zip</div>
+            <div class="menu-item" onclick="showPublish()"><i class="fas fa-cloud-arrow-up w-4"></i> Publish Live…</div>
+          </div>
+          <div id="openPop" class="popover right-3" style="top:42px;width:220px;padding:4px;display:none">
+            <div class="text-[9px] text-[#808080] uppercase tracking-wider font-bold mb-2 pb-1 border-b border-[#262626] px-2">Open from Local</div>
+            <div id="openList" class="flex flex-col gap-1 max-h-60 overflow-y-auto"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="pagesPop" class="popover left-3" style="top:48px; width: 220px;">
+        <div class="flex justify-between items-center mb-2 pb-1 border-b border-[#262626]">
+          <div class="text-[9px] text-[#808080] uppercase tracking-wider font-bold">Pages</div>
+          <button onclick="addPage()" class="text-[10px] text-white flex items-center gap-1"><i class="fas fa-plus"></i> Add</button>
+        </div>
+        <div id="pageList" class="flex flex-col gap-1 max-h-60 overflow-y-auto"></div>
+      </div>
+
+      <div id="layersPop" class="popover left-3" style="top:48px">
+        <div class="text-[9px] text-[#808080] uppercase tracking-wider font-bold mb-2 pb-1 border-b border-[#262626]">Layers</div>
+        <div id="lL" class="flex flex-col gap-1 max-h-60 overflow-y-auto"></div>
+      </div>
+
+      <div id="animPop" class="popover right-3" style="top:48px">
+        <div class="text-[9px] text-[#808080] uppercase tracking-wider font-bold mb-2 pb-1 border-b border-[#262626]">Animation</div>
+        <div id="aP"></div>
+      </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+      <aside class="w-12 bg-[#0a0a0a] border-r border-[#262626] flex flex-col items-center py-2 gap-1.5 shrink-0 overflow-y-auto" style="touch-action:pan-y">
+        <button class="sh-btn on" data-m="select" onclick="setM('select')" title="Select (V)"><i class="fas fa-arrow-pointer text-[10px]"></i></button>
+        <button class="sh-btn" data-m="freehand" onclick="setM('freehand')" title="Draw (P)"><i class="fas fa-pen text-[10px]"></i></button>
+        <button class="sh-btn" onclick="showImgMenu()" title="Add Image"><i class="fas fa-image text-[10px]"></i></button>
+        <button class="sh-btn" onclick="showDataMenu()" title="Add Live Data List"><i class="fas fa-database text-[10px]"></i></button>
+        <input type="file" id="imgInput" accept="image/*" style="display:none">
+
+        <div class="w-8 border-t border-[#262626] my-1"></div>
+        <div class="sh-btn" data-sh="rect" title="Rectangle"><i class="fas fa-square text-[10px]"></i></div>
+        <div class="sh-btn" data-sh="circle" title="Circle"><i class="fas fa-circle text-[10px]"></i></div>
+        <div class="sh-btn" data-sh="line" title="Line"><i class="fas fa-minus text-[10px]"></i></div>
+        <div class="sh-btn" data-sh="text" title="Text"><i class="fas fa-font text-[10px]"></i></div>
+
+        <div class="w-8 border-t border-[#262626] my-1"></div>
+        <div class="cs" id="fSw" style="background:#ffffff" title="Fill Color" onclick="openColorPicker('fill')"></div>
+        <div class="cs" id="sSw" style="background:#000000" title="Stroke Color" onclick="openColorPicker('stroke')"></div>
+      </aside>
+
+      <div class="ww">
+        <div id="ws">
+          <svg id="svgO" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="so"></div>
+          <div id="txtMeasure"></div>
+        </div>
+
+        <div id="ctxBar">
+          <span id="ctxType" class="text-[9px] px-2 py-1 rounded-full bg-white text-black font-semibold uppercase"></span>
+          <div class="ctx-divider"></div>
+          <div class="flex items-center gap-1"><span class="ctx-label">X</span><input type="number" id="ctxX" class="ctx-input" onchange="uProp(S.sel,'x',+this.value)"></div>
+          <div class="flex items-center gap-1"><span class="ctx-label">Y</span><input type="number" id="ctxY" class="ctx-input" onchange="uProp(S.sel,'y',+this.value)"></div>
+          <div class="flex items-center gap-1"><span class="ctx-label">W</span><input type="number" id="ctxW" class="ctx-input" onchange="uProp(S.sel,'width',Math.max(10,+this.value))"></div>
+          <div class="flex items-center gap-1"><span class="ctx-label">H</span><input type="number" id="ctxH" class="ctx-input" onchange="uProp(S.sel,'height',Math.max(10,+this.value))"></div>
+          <div class="ctx-divider" id="ctxStyleDiv"></div>
+          <div class="flex items-center gap-1" id="ctxFillWrap"><div class="cs" style="width:20px;height:20px" id="ctxFillSw" onclick="openColorPicker('fill')"></div></div>
+          <div class="flex items-center gap-1" id="ctxStrokeWrap"><div class="cs" style="width:20px;height:20px" id="ctxStrokeSw" onclick="openColorPicker('stroke')"></div></div>
+          <input type="number" id="ctxStrokeW" class="ctx-input" style="width:30px" min="0" max="20" onchange="uProp(S.sel,'strokeWidth',+this.value)" title="Stroke Width">
+          <input type="number" id="ctxOpacity" class="ctx-input" style="width:36px" min="0" max="100" onchange="uProp(S.sel,'opacity',+this.value/100)" title="Opacity %">
+          <button id="ctxEditBtn" class="ab h-7 w-7" style="display:none" onclick="editTextOnCanvas()" title="Edit Text"><i class="fas fa-pen"></i></button>
+          <button id="ctxDataBtn" class="ab h-7 w-7" style="display:none" onclick="openDataConfig()" title="Configure data list"><i class="fas fa-database"></i></button>
+          <div class="ctx-divider"></div>
+          <button onclick="doUp()" class="ab h-7 w-7" title="Bring forward"><i class="fas fa-arrow-up"></i></button>
+          <button onclick="doDown()" class="ab h-7 w-7" title="Send backward"><i class="fas fa-arrow-down"></i></button>
+          <button id="ctxLinkBtn" class="ab h-7 w-7" onclick="openLinkMenu()" title="Add Link/Anchor"><i class="fas fa-link"></i></button>
+          <button onclick="doDupe()" class="ab h-7 w-7"><i class="fas fa-copy"></i></button>
+          <button onclick="doDel(S.sel)" class="ab h-7 w-7" style="color:var(--dn);border-color:rgba(255,71,87,.3)"><i class="fas fa-trash"></i></button>
+        </div>
+
+        <div id="publishBar">
+          <i class="fas fa-bolt" style="color:var(--tl)"></i>
+          <span class="text-xs">Live at</span>
+          <a id="publishUrl" href="#" target="_blank" class="text-xs font-semibold underline"></a>
+          <button onclick="hidePublishBar()" class="ab h-7 w-7"><i class="fas fa-xmark"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dragGhost"></div>
+  <div class="toast-root"></div>
+
+  <div id="txM" class="mb" style="display:none"><div class="mx"><h3 class="text-sm font-semibold mb-2">Add Text</h3><input type="text" id="txI" class="pi mb-2" placeholder="Type your text..."><div class="flex gap-2 justify-end"><button class="bg text-[10px]" onclick="txCancel()">Cancel</button><button class="ba text-[10px]" onclick="txOk()">Add</button></div></div></div>
+
+  <div id="imgM" class="mb" style="display:none"><div class="mx"><h3 class="text-sm font-semibold mb-2">Add Image</h3><p class="text-[10px] text-gray-400 mb-2">Paste a raw GitHub link, imgur, etc.</p><input type="text" id="imgUrlI" class="pi mb-2" placeholder="https://..."><div class="flex gap-2 justify-between mt-3"><button class="bg text-[10px]" onclick="document.getElementById('imgInput').click()">Upload Local</button><div class="flex gap-2"><button class="bg text-[10px]" onclick="imgCancel()">Cancel</button><button class="ba text-[10px]" onclick="imgUrlOk()">Add</button></div></div></div></div>
+
+  <div id="promptM" class="mb" style="display:none"><div class="mx"><h3 id="promptTitle" class="text-sm font-semibold mb-2">Enter Name</h3><input type="text" id="promptInput" class="pi mb-3" placeholder="..."><div class="flex gap-2 justify-end"><button class="bg text-[10px]" onclick="closePrompt()">Cancel</button><button class="ba text-[10px]" onclick="submitPrompt()">Save</button></div></div></div>
+
+  <div id="colorM" class="mb" style="display:none"><div class="mx" style="width:260px"><h3 id="colorTitle" class="text-sm font-semibold mb-3">Pick Color</h3><input type="color" id="colorWheel" style="width:100%;height:120px;border:1px solid var(--bd);border-radius:8px;background:none;cursor:pointer;margin-bottom:10px;"><div class="flex gap-2 items-center mb-3"><span class="text-xs text-gray-400">#</span><input type="text" id="colorHex" class="pi flex-1" placeholder="FFFFFF" oninput="updateColorFromHex(this.value)"></div><div class="flex gap-2 justify-end"><button class="bg text-[10px]" onclick="closeColorPicker()">Done</button></div></div></div>
+
+  <div id="linkM" class="mb" style="display:none"><div class="mx" style="width:300px">
+    <h3 class="text-sm font-semibold mb-3">Link & Anchors</h3>
+    <div class="mb-3"><div class="pl mb-1">Link Destination (Page or URL)</div><input type="text" id="linkHref" class="pi" placeholder="e.g., about.html or https://google.com" oninput="setLinkHref(this.value)"></div>
+    <div class="mb-3"><div class="pl mb-1">OR Smooth Scroll Anchor ID</div><input type="text" id="linkAnchor" class="pi" placeholder="e.g., features" oninput="setLinkAnchor(this.value)"></div>
+    <div class="flex justify-end mt-4"><button class="ba text-[10px]" onclick="closeLinkMenu()">Done</button></div>
+  </div></div>
+
+  <div id="exM" class="mb" style="display:none"><div class="mx" style="max-width:600px;width:90vw"><h3 class="text-sm font-semibold mb-1">Export HTML</h3><p class="text-[10px] text-[#808080] mb-2">If you used local uploads or multiple pages, a ZIP will be downloaded. Otherwise, a single HTML file.</p><div class="flex gap-2 justify-end mt-3"><button class="bg text-[10px]" onclick="exClose()">Close</button><button class="bg text-[10px]" onclick="exCopy()"><i class="fas fa-copy mr-1"></i>Copy Code</button><button class="ba text-[10px]" onclick="exDown()"><i class="fas fa-download mr-1"></i>Download</button></div></div></div>
+
+  <!-- publish modal -->
+  <div id="pubM" class="mb" style="display:none"><div class="mx" style="width:420px">
+    <h3 class="text-sm font-semibold mb-1"><i class="fas fa-cloud-arrow-up mr-1"></i> Publish Live</h3>
+    <p class="text-[10px] text-[#808080] mb-4">Your site goes live instantly with an SEO-ready page, and live data lists keep pulling from your collections.</p>
+    <div class="pl">Web address</div>
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-[11px] text-[#808080] whitespace-nowrap">/s/</span>
+      <input type="text" id="pubSlug" class="pi flex-1" placeholder="my-site">
+    </div>
+    <div class="pl">Site title (SEO)</div>
+    <input type="text" id="pubTitle" class="pi mb-3" placeholder="My Awesome Site">
+    <div class="pl">Description (SEO)</div>
+    <input type="text" id="pubDesc" class="pi mb-3" placeholder="What is this site about?">
+    <div class="pl">Favicon URL (optional)</div>
+    <input type="text" id="pubFavicon" class="pi mb-3" placeholder="https://.../favicon.png">
+    <div class="pl">Custom CSS (optional)</div>
+    <textarea id="pubCss" class="pi mb-4" rows="3" placeholder="/* extra styles injected into every page */"></textarea>
+    <p id="pubError" class="text-[11px] mb-3" style="color:var(--dn);display:none"></p>
+    <div class="flex justify-end gap-2">
+      <button class="bg text-[11px]" onclick="hidePublish()">Cancel</button>
+      <button id="pubBtn" class="ba text-[11px]" onclick="doPublish()"><i class="fas fa-bolt"></i> Publish</button>
+    </div>
+  </div></div>
+
+  <!-- data list config modal -->
+  <div id="dataM" class="mb" style="display:none"><div class="mx" style="width:400px">
+    <h3 class="text-sm font-semibold mb-1"><i class="fas fa-database mr-1"></i> Live Data List</h3>
+    <p class="text-[10px] text-[#808080] mb-4">Render records from one of your apps — live on your published site.</p>
+    <div class="pl">Collection</div>
+    <select id="dataColl" class="pi mb-3"></select>
+    <div class="grid grid-cols-3 gap-2 mb-3">
+      <div><div class="pl">Title field</div><select id="dataTitle" class="pi"></select></div>
+      <div><div class="pl">Text field</div><select id="dataSub" class="pi"></select></div>
+      <div><div class="pl">Image field</div><select id="dataImg" class="pi"></select></div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mb-3">
+      <div><div class="pl">Columns</div><input type="number" id="dataCols" class="pi" min="1" max="4" value="3"></div>
+      <div><div class="pl">Max records</div><input type="number" id="dataLimit" class="pi" min="1" max="100" value="12"></div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mb-4">
+      <div><div class="pl">Card background</div><input type="color" id="dataCardBg" class="pi" style="height:34px;padding:2px" value="#ffffff"></div>
+      <div><div class="pl">Card text</div><input type="color" id="dataCardColor" class="pi" style="height:34px;padding:2px" value="#111111"></div>
+    </div>
+    <div class="flex justify-end gap-2">
+      <button class="bg text-[11px]" onclick="hideDataConfig()">Cancel</button>
+      <button class="ba text-[11px]" onclick="applyDataConfig()">Apply</button>
+    </div>
+  </div></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/studio.js"></script>
+</body>
+</html>
