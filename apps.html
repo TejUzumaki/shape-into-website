@@ -8,17 +8,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body class="h-screen overflow-hidden flex flex-col">
 
   <header class="topbar">
     <div class="flex items-center gap-3">
-      <a href="/" class="ab" title="Dashboard" style="height:32px;min-width:32px;border-radius:6px;border:1px solid var(--bd);background:var(--cd);display:flex;align-items:center;justify-content:center;color:var(--mt)"><i class="fas fa-arrow-left"></i></a>
+      <a href="index.html" class="ab" title="Dashboard" style="height:32px;min-width:32px;border-radius:6px;border:1px solid var(--bd);background:var(--cd);display:flex;align-items:center;justify-content:center;color:var(--mt)"><i class="fas fa-arrow-left"></i></a>
       <svg class="logo-svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="115" fill="#fff"/><g transform="translate(133 133) scale(10.25 10.25)"><g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M14.692 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v3.804"/><path d="M2.264 13.752L7 16.5l4.737-2.748"/><path d="M2.995 13.014A2 2 0 0 0 2 14.744v3.516a2 2 0 0 0 .996 1.73l3 1.74a2 2 0 0 0 2.008 0l3-1.74A2 2 0 0 0 12 18.26v-3.517a2 2 0 0 0-.995-1.73l-3-1.742a2 2 0 0 0-1.892-.064zM7 16.5V22"/></g></g></svg>
       <div>
         <h1 class="font-semibold text-sm leading-none">App Maker</h1>
-        <p class="text-[9px] text-[#808080] leading-none mt-1">Schema · Records · Live app</p>
+        <p class="text-[9px] text-[#808080] leading-none mt-1">Schema · Records · Static export</p>
       </div>
     </div>
     <div id="headerRight" class="flex items-center gap-2"></div>
@@ -46,6 +46,7 @@
           <input id="appName" class="bg-transparent outline-none text-lg font-semibold font-['Space_Grotesk'] w-full" value="Untitled" spellcheck="false">
           <div class="text-[10px] text-[#808080]"><span id="appMeta">0 records · 0 fields</span> · <span id="appSlug" class="font-mono">—</span></div>
         </div>
+        <button onclick="exportAppHTML()" class="bg text-[11px]"><i class="fas fa-download"></i> Export HTML</button>
         <button id="pubToggle" onclick="togglePublic()" class="bg text-[11px]"><i class="fas fa-lock"></i> Private</button>
         <a id="openLive" href="#" target="_blank" class="ba text-[11px]"><i class="fas fa-arrow-up-right-from-square"></i> Open App</a>
       </div>
@@ -80,7 +81,7 @@
 
       <!-- VIEWS -->
       <section id="tab-views" class="flex-1 overflow-auto px-6 py-4" style="display:none">
-        <p class="text-[11px] text-[#808080] mb-4">Configure how your live app renders — cards or table, which fields matter most.</p>
+        <p class="text-[11px] text-[#808080] mb-4">Configure how your exported app renders — cards or table, which fields matter most.</p>
         <div class="grid md:grid-cols-2 gap-4 max-w-2xl">
           <div class="panel p-4">
             <div class="pl">Primary (title) field</div>
@@ -114,7 +115,7 @@
   </div></div>
 
   <div class="toast-root"></div>
-  <script src="/js/api.js"></script>
-  <script src="/js/appmaker.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/appmaker.js"></script>
 </body>
 </html>

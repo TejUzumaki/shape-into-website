@@ -1,6 +1,7 @@
-# Runtime data (accounts, projects, records, published sites) — never publish
-platform/data/
-
-node_modules/
-*.log
+# OS/editor
 .DS_Store
+Thumbs.db
+.vscode/
+# Local exports and backups
+*.zip
+*.backup

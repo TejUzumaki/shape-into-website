@@ -32,20 +32,9 @@ function uSync(kind) {
   dot.innerHTML = map[kind] || map.local;
 }
 setInterval(() => {
-  if (S.serverId && S.dirty && V2H.isAuthed() && S.gesture === 'IDLE') saveProject();
+  if (S.dirty && S.gesture === 'IDLE') saveProject();
 }, 20000);
-window.addEventListener('pagehide', () => {
-  if (S.serverId && S.dirty && V2H.isAuthed()) {
-    getActivePage().els = S.els;
-    try {
-      fetch('/api/projects/' + S.serverId, {
-        method: 'PUT', keepalive: true,
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + V2H.state.token },
-        body: JSON.stringify({ state: serializeState() })
-      }).catch(() => {});
-    } catch (e) { /* best effort */ }
-  }
-});
+window.addEventListener('pagehide', () => { if (S.dirty) { getActivePage().els = S.els; if (!S.projectId) S.projectId = Date.now(); saveLocalProject(); } });
 function serializeState() {
   return JSON.parse(JSON.stringify(Object.assign({}, S, { undo: [], redo: [], sel: null, gesture: 'IDLE', dirty: false })));
 }
@@ -151,21 +140,22 @@ function newProject(skipConfirm) {
   document.getElementById('projLabel').textContent = 'Untitled';
   hidePublishBar();
   uSync(V2H.isAuthed() ? 'saved' : 'local');
-  history.replaceState(null, '', '/studio.html');
+  history.replaceState(null, '', 'studio.html');
   renderPagesList();
 }
 function exitToDashboard() {
-  if (S.serverId) { saveProject(); setTimeout(() => location.href = '/', 400); return; }
+  if (S.serverId) { saveProject(); setTimeout(() => location.href = 'index.html', 400); return; }
   if (S.els.length > 0) {
     showPrompt('Save current project locally?', S.projectName || 'Untitled', newName => {
-      S.projectName = newName; S.projectId = Date.now(); saveLocalProject(); location.href = '/';
+      S.projectName = newName; S.projectId = Date.now(); saveLocalProject(); location.href = 'index.html';
     });
     return;
   }
-  location.href = '/';
+  location.href = 'index.html';
 }
 function applyState(state, name, serverId) {
   S = Object.assign(freshState(), state || {}, { sel: null, undo: [], redo: [], gesture: 'IDLE', serverId: serverId || null });
+  if (serverId) S.projectId = serverId;
   if (!S.pages || !S.pages.length) S.pages = [{ id: 'index', name: 'Home', els: S.els }];
   if (!S.activePageId) S.activePageId = 'index';
   ws.style.backgroundColor = S.bg;
@@ -190,32 +180,17 @@ function makeThumb() {
 
 async function saveProject(saveAs = false) {
   getActivePage().els = S.els;
-  const doSave = async () => {
-    if (V2H.isAuthed()) {
-      uSync('saving');
-      try {
-        const payload = { name: S.projectName, state: serializeState(), thumb: await makeThumb() };
-        if (!S.serverId) {
-          const res = await V2H.api('POST', '/api/projects', payload);
-          S.serverId = res.project.id;
-          history.replaceState(null, '', '/studio.html?project=' + S.serverId);
-        } else {
-          await V2H.api('PUT', '/api/projects/' + S.serverId, payload);
-        }
-        S.dirty = false;
-        document.getElementById('projLabel').textContent = S.projectName;
-        uSync('saved');
-        V2H.toast('Saved to your account', 'ok');
-      } catch (e) { uSync('dirty'); V2H.toast(e.message, 'er'); }
-    } else {
-      if (!S.projectId) S.projectId = Date.now();
-      saveLocalProject();
-      V2H.toast('Saved locally (sign in to sync)', 'ok');
-    }
+  const persist = () => {
+    if (!S.projectId) S.projectId = Date.now();
+    saveLocalProject();
+    S.dirty = false;
+    document.getElementById('projLabel').textContent = S.projectName;
+    uSync('local');
+    V2H.toast('Saved in this browser', 'ok');
   };
   if (saveAs || !S.projectName || S.projectName === 'Untitled') {
-    showPrompt('Save Project As', S.projectName === 'Untitled' ? '' : S.projectName, async newName => { S.projectName = newName; await doSave(); });
-  } else doSave();
+    showPrompt('Save Project As', S.projectName === 'Untitled' ? '' : S.projectName, name => { S.projectName = name; persist(); });
+  } else persist();
 }
 function saveLocalProject() {
   const p = getLocalProjects();
@@ -234,13 +209,13 @@ function showOpenMenu() {
   const list = document.getElementById('openList'), projects = getLocalProjects();
   list.innerHTML = projects.length === 0
     ? '<div class="text-[10px] text-gray-500 px-2 py-4 text-center">No local projects found.</div>'
-    : projects.map(p => '<div class="menu-item" onclick="openLocalProject(' + p.id + ')"><i class="fas fa-file w-4"></i> ' + escHtml(p.name) + '</div>').join('');
+    : projects.map(p => '<div class="menu-item" onclick="openLocalProject(' + JSON.stringify(p.id) + ')"><i class="fas fa-file w-4"></i> ' + escHtml(p.name) + '</div>').join('');
   document.getElementById('openPop').style.display = 'block';
 }
 document.addEventListener('pointerdown', e => { if (!e.target.closest('#openPop') && !e.target.closest('.menu-item')) document.getElementById('openPop').style.display = 'none'; });
 
 function openLocalProject(id) {
-  const p = getLocalProjects().find(x => x.id === id); if (!p) return;
+  const p = getLocalProjects().find(x => String(x.id) === String(id)); if (!p) return;
   S.projectId = p.id; S.projectName = p.name; S.serverId = null;
   applyState(p.state, p.name, null);
   document.getElementById('openPop').style.display = 'none';
@@ -816,16 +791,14 @@ document.addEventListener('keydown', e => {
 
 const DATA_RUNTIME = '<script>\n' +
 '(function(){function e(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")}' +
-'function r(h){var c=h.dataset.coll,t=h.dataset.title,b=h.dataset.sub,m=h.dataset.img,n=+h.dataset.cols||3,l=+h.dataset.limit||12,bg=h.dataset.cardbg||"#ffffff",co=h.dataset.cardcolor||"#111111";' +
-'fetch("/api/public/collections/"+c+"/records?limit="+l).then(function(x){return x.json()}).then(function(d){var q=(d.records||[]).slice(0,l);' +
+'function r(h){var t=h.dataset.title,b=h.dataset.sub,m=h.dataset.img,n=+h.dataset.cols||3,l=+h.dataset.limit||12,bg=h.dataset.cardbg||"#ffffff",co=h.dataset.cardcolor||"#111111";' +
+'var q=[];try{q=JSON.parse(decodeURIComponent(escape(atob(h.dataset.records||"W10=")))).slice(0,l)}catch(x){}' +
 'h.innerHTML="<div style=\\"display:grid;grid-template-columns:repeat("+n+",minmax(0,1fr));gap:14px;width:100%;height:100%;align-content:start;overflow:auto\\">"+' +
 'q.map(function(x){var i=(m&&x[m])?"<div style=\\"width:100%;aspect-ratio:16/9;overflow:hidden;border-radius:8px;background:#eee;margin-bottom:10px\\"><img src=\\""+x[m]+"\\" style=\\"width:100%;height:100%;object-fit:cover\\"></div>":"";' +
 'var tt=(t&&x[t])?"<div style=\\"font-weight:600;font-size:15px;margin-bottom:4px\\">"+e(x[t])+"</div>":"";' +
 'var ss=(b&&x[b])?"<div style=\\"font-size:12px;opacity:.75;line-height:1.4\\">"+e(x[b])+"</div>":"";' +
-'return "<div style=\\"background:"+bg+";color:"+co+";border-radius:10px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden\\">"+i+tt+ss+"</div>"}).join("")+"</div>"})' +
-'.catch(function(){h.innerHTML="<div style=\\"padding:20px;color:#999;font-family:sans-serif;font-size:13px\\">Data unavailable</div>"})}' +
+'return "<div style=\\"background:"+bg+";color:"+co+";border-radius:10px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden\\">"+i+tt+ss+"</div>"}).join("")+"</div>"}' +
 'document.querySelectorAll(".v2h-data").forEach(r)})();\n<' + '/script>';
-
 function generatePageHTML(page, forPublish) {
   const originalEls = S.els;
   S.els = page.els || [];
@@ -856,7 +829,10 @@ function generatePageHTML(page, forPublish) {
       hasData = true;
       ec += '.' + cls + '{position:absolute;left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.width + 'px;height:' + el.height + 'px;opacity:' + el.opacity + ';overflow:auto;text-decoration:none;' + an + '}\n';
       if (forPublish) {
-        eh += '    <div class="' + cls + ' v2h-data" data-coll="' + escHtml(el.collection) + '" data-title="' + escHtml(el.titleField) + '" data-sub="' + escHtml(el.subField) + '" data-img="' + escHtml(el.imgField) + '" data-cols="' + (el.cols || 3) + '" data-limit="' + (el.limit || 12) + '" data-cardbg="' + escHtml(el.cardBg) + '" data-cardcolor="' + escHtml(el.cardColor) + '"><div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-family:sans-serif;font-size:13px">Loading data…</div></div>\n';
+        let staticRows = [];
+        try { const localDb = JSON.parse(localStorage.getItem('v2h_static_db_v1') || '{}'); staticRows = ((localDb.records || {})[el.collection] || []).slice(0, el.limit || 12); } catch (e) {}
+        const packedRows = btoa(unescape(encodeURIComponent(JSON.stringify(staticRows))));
+        eh += '    <div class="' + cls + ' v2h-data" data-coll="' + escHtml(el.collection) + '" data-title="' + escHtml(el.titleField) + '" data-sub="' + escHtml(el.subField) + '" data-img="' + escHtml(el.imgField) + '" data-cols="' + (el.cols || 3) + '" data-limit="' + (el.limit || 12) + '" data-cardbg="' + escHtml(el.cardBg) + '" data-cardcolor="' + escHtml(el.cardColor) + '" data-records="' + packedRows + '"><div style="display:flex;align-items:center;justify-content:center;height:100%;color:#999;font-family:sans-serif;font-size:13px">Loading data…</div></div>\n';
       } else {
         eh += '    <div class="' + cls + '" style="display:flex;align-items:center;justify-content:center;color:#999;font-family:sans-serif;font-size:13px;border:2px dashed #bbb;border-radius:8px">Live data: ' + escHtml(el.collName || 'collection') + ' — renders when published with V2H</div>\n';
       }
@@ -934,7 +910,7 @@ function fbCopy() {
 /* ---------------- publish ---------------- */
 
 function showPublish() {
-  if (!V2H.isAuthed()) { toast('Sign in from the dashboard to publish live', 'er'); return; }
+  // Static export is available in local-only mode.
   getActivePage().els = S.els;
   document.getElementById('pubSlug').value = V2H.slugify(S.projectName === 'Untitled' ? '' : S.projectName);
   document.getElementById('pubTitle').value = S.projectName === 'Untitled' ? '' : S.projectName;
@@ -968,31 +944,25 @@ async function doPublish() {
     css: document.getElementById('pubCss').value.trim()
   };
   try {
-    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Publishing…';
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing export…';
     getActivePage().els = S.els;
-    const pages = {}, assets = {};
+    const files = {};
     S.pages.forEach(page => {
       const res = generatePageHTML(page, true);
       const filename = (page.id === 'index' ? 'index' : page.id) + '.html';
-      pages[filename] = injectSettings(res.html, page, st);
-      Object.assign(assets, res.assetsMap);
+      files[filename] = injectSettings(res.html, page, st);
+      Object.assign(files, res.assetsMap);
     });
-    if (!S.serverId) {
-      const res = await V2H.api('POST', '/api/projects', { name: S.projectName, state: serializeState() });
-      S.serverId = res.project.id;
-      history.replaceState(null, '', '/studio.html?project=' + S.serverId);
-    } else {
-      await V2H.api('PUT', '/api/projects/' + S.serverId, { state: serializeState() });
-    }
-    const res = await V2H.api('POST', '/api/publish', { projectId: S.serverId, slug: st.slug, name: S.projectName, pages, assets, settings: st });
-    S.dirty = false; uSync('saved');
-    hidePublish();
-    showPublishBar(res.url || '/s/' + st.slug + '/');
-    toast('Published live!', 'ok');
+    if (!S.projectId) S.projectId = Date.now();
+    S.projectName = S.projectName || st.title || 'V2H Site';
+    saveLocalProject();
+    V2H.downloadZip(files, st.slug + '.zip');
+    S.dirty = false; uSync('local'); hidePublish();
+    V2H.toast('Static website ZIP exported. Upload its contents to Vercel.', 'ok');
   } catch (e) {
     errEl.textContent = e.message; errEl.style.display = 'block';
   } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Publish';
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-download"></i> Export ZIP';
   }
 }
 function showPublishBar(url) {
@@ -1013,7 +983,7 @@ if (localStorage.getItem('stack_projects') && !localStorage.getItem('v2h_project
 
 (function boot() {
   const pid = new URLSearchParams(location.search).get('project');
-  if (pid && V2H.isAuthed()) {
+  if (pid) {
     V2H.api('GET', '/api/projects/' + pid).then(res => {
       S.projectName = res.project.name;
       applyState(res.project.state, res.project.name, res.project.id);

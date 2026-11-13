@@ -15,7 +15,7 @@ let schemaDraft = [];     // working copy of fields in schema tab
 /* ---------------- boot & sidebar ---------------- */
 
 async function boot() {
-  if (!V2H.isAuthed()) { location.href = '/'; return; }
+  // Local workspace: no sign-in required.
   try {
     const res = await V2H.api('GET', '/api/collections');
     colls = res.collections || [];
@@ -75,16 +75,16 @@ function renderHeader() {
   document.getElementById('appIcon').innerHTML = '<i class="fas ' + V2H.esc(app.icon || 'fa-database') + '"></i>';
   document.getElementById('appIcon').style.color = app.color || '#fff';
   document.getElementById('appMeta').textContent = app.recordCount + ' record' + (app.recordCount === 1 ? '' : 's') + ' · ' + app.fields.length + ' fields';
-  document.getElementById('appSlug').textContent = '/app/' + app.slug;
+  document.getElementById('appSlug').textContent = 'local · ' + app.slug;
   const pub = document.getElementById('pubToggle');
-  pub.innerHTML = app.public ? '<i class="fas fa-bolt"></i> Public' : '<i class="fas fa-lock"></i> Private';
+  pub.innerHTML = app.public ? '<i class="fas fa-eye"></i> Preview enabled' : '<i class="fas fa-lock"></i> Local only';
   pub.classList.toggle('on', !!app.public);
   const live = document.getElementById('openLive');
-  live.href = '/app/' + app.slug;
+  live.href = 'appview.html?id=' + encodeURIComponent(app.id);
   live.style.display = app.public ? 'inline-flex' : 'none';
   document.getElementById('shareBox').innerHTML = app.public
-    ? '<a href="/app/' + app.slug + '" target="_blank" class="text-[var(--tl)] break-all">' + location.origin + '/app/' + app.slug + '</a>'
-    : 'Flip to Public to share a live app URL.';
+    ? '<a href="appview.html?id=' + encodeURIComponent(app.id) + '" target="_blank" class="text-[var(--tl)] break-all">Preview in this browser</a>'
+    : 'Enable local preview, or export a standalone HTML file to share.';
 }
 document.getElementById('appName').addEventListener('change', async () => {
   if (!coll) return;
@@ -104,7 +104,7 @@ async function togglePublic() {
     await V2H.api('PUT', '/api/collections/' + coll.id, { public: makingPublic });
     coll.public = makingPublic;
     renderHeader(); renderSidebar();
-    V2H.toast(makingPublic ? 'App is live at /app/' + coll.slug : 'App is private now', 'ok');
+    V2H.toast(makingPublic ? 'App enabled for local preview. Export HTML to share it.' : 'App marked private.', 'ok');
   } catch (e) { V2H.toast(e.message, 'er'); }
 }
 
@@ -296,4 +296,16 @@ async function saveViews() {
     coll.views = res.collection.views;
     V2H.toast('Views saved', 'ok');
   } catch (e) { V2H.toast(e.message, 'er'); }
+}
+
+
+async function exportAppHTML() {
+  if (!coll) return;
+  const data = await V2H.api('GET', '/api/collections/' + coll.id + '/records');
+  const payload = { collection: coll, records: data.records || [] };
+  const safe = JSON.stringify(payload).replace(/</g,'\\u003c');
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${V2H.esc(coll.name)}</title><style>body{margin:0;background:#08090d;color:#eee;font:15px system-ui;padding:32px}main{max-width:1100px;margin:auto}header{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid #292b38;padding-bottom:20px;margin-bottom:24px}h1{font-size:clamp(24px,4vw,40px);margin:0}.muted{color:#9295a7}input{background:#12141c;border:1px solid #303344;color:white;padding:12px 14px;border-radius:10px;width:min(280px,100%)}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.card{background:#11131b;border:1px solid #292b38;border-radius:14px;padding:18px}.card h2{font-size:17px;margin:0 0 8px}.card p{color:#a8aabb;line-height:1.5;margin:6px 0;overflow-wrap:anywhere}.tag{color:#9b91ff;font-size:11px;text-transform:uppercase;letter-spacing:.1em}footer{margin-top:40px;color:#666;font-size:12px}</style></head><body><main><header><div><div class="tag">V2H · STATIC APP</div><h1>${V2H.esc(coll.name)}</h1><p class="muted">${payload.records.length} entries · Standalone export</p></div><input id="q" placeholder="Search records…"></header><section id="items" class="grid"></section><footer>Built with V2H Static Studio</footer></main><script>const DATA=${safe};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));function draw(q=''){const c=DATA.collection,rows=DATA.records.filter(r=>!q||c.fields.some(f=>String(r[f.key]??'').toLowerCase().includes(q)));document.getElementById('items').innerHTML=rows.map(r=>{const title=r[(c.views||{}).primaryField]||r[c.fields[0]?.key]||'Entry';return '<article class="card"><div class="tag">'+esc(c.name)+'</div><h2>'+esc(title)+'</h2>'+c.fields.filter(f=>f.key!==(c.views||{}).primaryField&&r[f.key]!==''&&r[f.key]!=null).map(f=>'<p><b>'+esc(f.name)+':</b> '+esc(r[f.key])+'</p>').join('')+'</article>'}).join('')||'<p class="muted">No matching records.</p>'}document.getElementById('q').addEventListener('input',e=>draw(e.target.value.toLowerCase()));draw();</script></body></html>`;
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=V2H.slugify(coll.name)+'.html';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  V2H.toast('Standalone app HTML exported.', 'ok');
 }

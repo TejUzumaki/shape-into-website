@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-  <meta name="description" content="V2H Studio — visual canvas that exports pure HTML and publishes live sites.">
+  <meta name="description" content="V2H Studio — visual canvas for building and exporting portable static websites.">
   <title>V2H Studio</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <link rel="stylesheet" href="/css/app.css">
+  <link rel="stylesheet" href="css/app.css">
   <style>
-    :root{--bg:#000;--sf:#0a0a0a;--cd:#141414;--bd:#262626;--fg:#fff;--mt:#808080;--ac:#fff;--acd:rgba(255,255,255,.1);--tl:#2ed573;--dn:#ff4757}
+    :root{--bg:#08090d;--sf:#10121a;--cd:#151824;--bd:#292d3b;--fg:#f2f3f8;--mt:#9296a8;--ac:#aaa0ff;--acd:rgba(151,137,255,.13);--tl:#9b91ff;--dn:#e06c83}
     *{-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important;-webkit-tap-highlight-color:transparent!important;box-sizing:border-box;margin:0;padding:0}
     html,body{touch-action:none!important;overscroll-behavior:none!important;overflow:hidden!important}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--fg);height:100vh;position:fixed;inset:0}
+    body{font-family:'DM Sans',sans-serif;background:radial-gradient(ellipse at 50% -20%,rgba(76,66,145,.16),transparent 48%),var(--bg);color:var(--fg);height:100vh;position:fixed;inset:0}
     h1,h2,h3{font-family:'Space Grotesk',sans-serif}
     input[type="text"],textarea,input[type="number"],input[type="email"],input[type="password"],select,[contenteditable]{-webkit-user-select:text!important;user-select:text!important;touch-action:manipulation!important}
     input[type="color"],input[type="range"]{touch-action:manipulation!important}
@@ -101,7 +101,7 @@
         <button onclick="chgBgPrompt()" class="ab" title="Canvas background"><i class="fas fa-paint-roller"></i></button>
         <button onclick="doClear()" class="ab" title="Clear page"><i class="fas fa-trash-can"></i></button>
         <div class="w-px h-4 bg-[#262626] mx-1"></div>
-        <button onclick="showPublish()" class="ba" style="height:30px" title="Publish live"><i class="fas fa-cloud-arrow-up"></i> Publish</button>
+        <button onclick="showPublish()" class="ba" style="height:30px" title="Export static website"><i class="fas fa-download"></i> Export ZIP</button>
 
         <div class="relative">
           <button onclick="togglePop('menuPop', this)" class="ab" title="Menu">
@@ -117,7 +117,7 @@
             <div class="menu-item" onclick="exportProject()"><i class="fas fa-file-export w-4"></i> Export JSON</div>
             <div class="border-t border-[#262626] my-1"></div>
             <div class="menu-item" onclick="showExport()"><i class="fas fa-download w-4"></i> Export HTML/Zip</div>
-            <div class="menu-item" onclick="showPublish()"><i class="fas fa-cloud-arrow-up w-4"></i> Publish Live…</div>
+            <div class="menu-item" onclick="showPublish()"><i class="fas fa-cloud-arrow-up w-4"></i> Export ZIP…</div>
           </div>
           <div id="openPop" class="popover right-3" style="top:42px;width:220px;padding:4px;display:none">
             <div class="text-[9px] text-[#808080] uppercase tracking-wider font-bold mb-2 pb-1 border-b border-[#262626] px-2">Open from Local</div>
@@ -225,7 +225,7 @@
 
   <!-- publish modal -->
   <div id="pubM" class="mb" style="display:none"><div class="mx" style="width:420px">
-    <h3 class="text-sm font-semibold mb-1"><i class="fas fa-cloud-arrow-up mr-1"></i> Publish Live</h3>
+    <h3 class="text-sm font-semibold mb-1"><i class="fas fa-cloud-arrow-up mr-1"></i> Export Static Website</h3>
     <p class="text-[10px] text-[#808080] mb-4">Your site goes live instantly with an SEO-ready page, and live data lists keep pulling from your collections.</p>
     <div class="pl">Web address</div>
     <div class="flex items-center gap-2 mb-3">
@@ -272,7 +272,7 @@
     </div>
   </div></div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/studio.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/studio.js"></script>
 </body>
 </html>
